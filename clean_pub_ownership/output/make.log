@@ -1,0 +1,187 @@
+--------------------------------------------------------------------------------
+Makelog started: 2022-12-06 20:30:24
+Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/clean_pub_ownership/code
+--------------------------------------------------------------------------------
+External links successfully created!
+
+  ___  ____  ____  ____  ____ ®
+ /__    /   ____/   /   ____/      17.0
+___/   /   /___/   /   /___/       MP—Parallel Edition
+
+ Statistics and Data Science       Copyright 1985-2021 StataCorp LLC
+                                   StataCorp
+                                   4905 Lakeway Drive
+                                   College Station, Texas 77845 USA
+                                   800-STATA-PC        https://www.stata.com
+                                   979-696-4600        stata@stata.com
+
+Stata license: Unlimited-user 4-core network, expiring 30 Jun 2023
+Serial number: 501709311471
+  Licensed to: Harvard University
+               Harvard University
+
+Notes:
+      1. Stata is running in batch mode.
+      2. Unicode is supported; see help unicode_advice.
+      3. More than 2 billion observations are allowed; see help obs_advice.
+      4. Maximum number of variables is set to 120,000; see help set_maxvar.
+
+. do "/Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/clean_p
+> ub_ownership/code/build.do" 
+
+. set more off
+
+. clear all
+
+. capture log close
+
+. program drop _all
+
+. set scheme modern
+
+. preliminaries
+
+. version 17
+
+. set maxvar 120000, perm
+(set maxvar preference recorded)
+
+
+. 
+. program main   
+  1.     prep_xwalk
+  2.     prep_data
+  3.     create_maps
+  4. end
+
+. 
+. program prep_xwalk
+  1.     use "../external/geo/zip_zipc_cty_cz_crswlk.dta", clear
+  2.     gcontract zip cty
+  3.     gduplicates drop zip, force
+  4.     drop _freq
+  5.     gen zip5 = string(zip, "%05.0f")
+  6.     drop zip 
+  7.     rename zip5 zip
+  8.     save ../temp/zip_cnty, replace
+  9. 
+.     use "../external/geo/zip_zipc_cty_cz_crswlk.dta", clear
+ 10.     gcontract zip cz1
+ 11.     gduplicates drop zip, force
+ 12.     drop _freq
+ 13.     gen zip5 = string(zip, "%05.0f")
+ 14.     drop zip
+ 15.     rename zip5 zip
+ 16.     save ../temp/zip_cz, replace
+ 17. end
+
+. program prep_data 
+  1.     import delimited using "../external/samp/SNF_Enrollments_Oct_2022.csv", varnames(1) stringc(23) clear
+  2.     gen affiliation = affiliationentityname 
+  3.     replace affiliation = organizationname if mi(affiliation)
+  4.     egen affil_group = group(affiliation)
+  5.     rename zipcode zip
+  6.     replace zip = substr(zip,1,5)
+  7.     
+.     merge m:1 zip using ../temp/zip_cnty, assert(1 2 3) keep (1 3) nogen
+  8.     merge m:1 zip using ../temp/zip_cz, assert(1 2 3) keep (1 3) nogen
+  9. 
+.     foreach loc in zip city cty cz1 { 
+ 10.         bys `loc' affil_group npi: gen owner_`loc'_counter = _n == 1
+ 11.         bys `loc' : egen tot_owners_`loc' = total(owner_`loc'_counter)
+ 12.         bys affil_group `loc': egen tot_nh_owner_`loc' = total(owner_`loc'_counter)
+ 13.         gen `loc'_mkt_shr = tot_nh_owner_`loc'/tot_owners_`loc'
+ 14.         bys `loc' : gen `loc'_id = _n == 1
+ 15.         bys affil_group `loc': gen owner_`loc'_id = _n == 1
+ 16.         gen hhi_`loc'_temp = (`loc'_mkt_shr * 100)^2 if owner_`loc'_id == 1
+ 17.         bys `loc': egen hhi_`loc' = total(hhi_`loc'_temp)
+ 18. 
+.         bys `loc' npi: gen nh_counter_`loc' = _n == 1
+ 19.         bys `loc': egen tot_nhs_`loc' = total(nh_counter_`loc')
+ 20.     }
+ 21.     sum tot_nhs_cz1 if cz1_id == 1
+ 22.     sum tot_nhs_cty if cty_id == 1
+ 23. end
+
+. 
+. program create_maps
+  1.     preserve
+  2.     gcontract tot_nhs_cty cty
+  3.     rename cty county
+  4.     maptile tot_nhs_cty, geo(county1990)
+  5.     graph export ../output/figures/county.eps, replace
+  6.     restore
+  7. 
+.      preserve
+  8.     gcontract tot_nhs_cz1 cz1
+  9.     rename cz1 cz
+ 10.     maptile tot_nhs_cz1, geo(cz1990)
+ 11.     graph export ../output/figures/cz.eps, replace
+ 12.     restore
+ 13. 
+. 
+. 
+. end
+
+. main
+(Written by R.              )
+
+Duplicates in terms of zip
+
+(0 observations are duplicates)
+(file ../temp/zip_cnty.dta not found)
+file ../temp/zip_cnty.dta saved
+(Written by R.              )
+
+Duplicates in terms of zip
+
+(0 observations are duplicates)
+(file ../temp/zip_cz.dta not found)
+file ../temp/zip_cz.dta saved
+(encoding automatically selected: UTF-8)
+(23 vars, 14,843 obs)
+(5,058 missing values generated)
+(5,058 real changes made)
+(14,597 real changes made)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            12
+        from master                        12  
+        from using                          0  
+
+    Matched                            14,831  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            12
+        from master                        12  
+        from using                          0  
+
+    Matched                            14,831  
+    -----------------------------------------
+(633 missing values generated)
+(1,381 missing values generated)
+(3,165 missing values generated)
+(5,540 missing values generated)
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+ tot_nhs_cz1 |        699     21.2289     39.9059          1        563
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+ tot_nhs_cty |      2,816    5.269886    11.59388          1        367
+(file ../output/figures/county.eps not found)
+file ../output/figures/county.eps saved as EPS format
+(file ../output/figures/cz.eps not found)
+file ../output/figures/cz.eps saved as EPS format
+
+. 
+end of do-file
+
+--------------------------------------------------------------------------------
+Makelog ended: 2022-12-06 20:30:35
+Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/clean_pub_ownership/code
+--------------------------------------------------------------------------------
