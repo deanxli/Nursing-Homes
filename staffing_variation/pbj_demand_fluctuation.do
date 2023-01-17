@@ -4,7 +4,8 @@ set more off
 global file_path_pos "${dropbox}/Nursing Homes/Data/Staffing Data/POS Yearly/"
 global file_path_pbj "${dropbox}/Nursing Homes/Data/Staffing Data/PBJ Nurse Staffing Quarterly/"
 
-******* Load Data
+******* Load Data 
+* We use random sample of daily data since the goal is to get a sense of demand fluctuations
 use "${file_path_pbj}/random_sample_daily_agg.dta", clear
 
 * Merge in POS data on number of beds (yearly) 
@@ -32,8 +33,8 @@ sum bed if frac_occ > 2 // 174 obs
 egen prov_id = group(prvdr_num)
 
 xtset prov_id workdate 
-xtsum mdscensus bed frac_occ
-bys fyear: xtsum mdscensus bed frac_occ
+xtsum mdscensus bed frac_occ 
+bys fyear: xtsum mdscensus bed frac_occ // mostly between fluctuation
 
 ******* How stable is substitution between RNs, LPNs, CNAs? 
 * Now we do it for nursing home hours 
@@ -48,17 +49,17 @@ foreach var in rn lpn cna {
 	gen frac_`var'_ctr = hrs_`var'_ctr / (hrs_rn_ctr + hrs_lpn_ctr + hrs_cna_ctr)
 }
 
-* Expected it to be stable but actually quite a bit of within fluctuation
+* Expected it to be stable but actually large within fluctuations for fraction contracting
 xtsum frac_rn frac_rn_emp frac_rn_ctr 
 xtsum frac_lpn frac_lpn_emp frac_lpn_ctr 
 xtsum frac_cna frac_cna_emp frac_cna_ctr 
 
 ******* How do nursing hours track demand fluctuations? 
 
-* Share of contract nurse hours for each type 
+* Share of contract nurse hours for each type (larger within as opposed to between fluctuations)
 xtsum share_*
 
-* Correlate demand and contract hours fraction usage 
+* Correlate demand and contract hours fraction usage (very small)
 pwcorr mdscensus share_rn share_lpn share_cna
 
 * Correlate demand and fulltime hours fraction usage 
@@ -72,6 +73,7 @@ pwcorr mdscensus frac_rn_ctr frac_lpn_ctr frac_cna_ctr
 ********************************************
 * Provider-level fluctuations
 ********************************************
+
 * Construct provider x year level s.d. of patients and hours 
 collapse (sd) mdscensus hrs_* *bed (sum) total_mds = mdscensus (mean) mean_mds = mdscensus ///
 	, by(prvdr_num provname city state county_name county_fips fyear)
@@ -87,8 +89,7 @@ xtile size_quart = mean_mds, nq(4)
 bys size_quart: pwcorr mdscensus hrs_rn_ctr hrs_lpn_ctr hrs_cna_ctr 
 
 * Correlate demand and fulltime hours variability
-bys size_quart: pwcorr mdscensus hrs_rn hrs_lpn hrs_cna
-bys size_quart: pwcorr mdscensus hrs_rn_emp hrs_lpn_emp hrs_cna_emp
+bys size_quart: pwcorr mdscensus hrs_rn hrs_lpn hrs_cna hrs_rn_emp hrs_lpn_emp hrs_cna_emp
 
 * Correlate fulltime and contract hour fluctuations for same subset of obs 
 bys size_quart: corr mdscensus hrs_rn_ctr hrs_lpn_ctr hrs_cna_ctr hrs_rn_emp hrs_lpn_emp hrs_cna_emp
@@ -97,11 +98,6 @@ bys size_quart: corr mdscensus hrs_rn_ctr hrs_lpn_ctr hrs_cna_ctr hrs_rn_emp hrs
 ** Seems like fluctuations are really accounted for fluctuations in CNA (not contract workers), esp for smaller nursing homes. This holds if we isolate to SNFs with contract hours (not so much bigger).
 
 //XXX: plot county level maps of fluctuations (which are high counties? does it change over time?)
-
-********************************************
-* Product Side HHI
-********************************************
-
 
 
 
