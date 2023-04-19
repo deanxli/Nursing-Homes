@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
-Makelog started: 2022-12-06 18:48:37
+Makelog started: 2022-12-14 09:57:43
 Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/hcris_sum_stats/code
 --------------------------------------------------------------------------------
 External links successfully created!
@@ -58,20 +58,28 @@ Notes:
   2.     keep if v2 == "S300005"
   3.     keep if v4 == "00500"
   4.     keep if inlist(v3, 100, 200, 300)
-  5.     tw hist v5 if v3 == 100 || hist v5 if v3 = 200 || hist v5 if v3 == 300
-  6.     graph export ../output/figures/wage.pdf
-  7. end
+  5.     foreach v in 100 200 300 {
+  6.         qui sum v5 if v3 == `v', d 
+  7.         local p99_`v' = r(p99)
+  8.         sum v5 if v3 == `v' &  v5 <= `p99_`v'', d 
+  9.         local mean_`v' = round(r(mean), 0.01)
+ 10.         local med_`v' = round(r(p50), 0.01)
+ 11.     }
+ 12. 
+.     tw hist v5 if v3 == 100 & v5 <= `p99_100', frac color(lavender%40) xline(`mean_100', lcolor(black) lpattern(dash)) || ///
+>        hist v5 if v3 == 200 &  v5 <= `p99_200', frac color(emerald%40) xline(`mean_200', lcolor(black) lpattern(dash)) || ///
+>        hist v5 if v3 == 300 &  v5 <= `p99_300', frac color(navy%40)  xline(`mean_300', lcolor(black) lpattern(dash)) ///
+>        ytitle("Fraction of Nursing Homes") xtitle("Hourly Wage") xlabel(0(10)80) legend(on label(1 "RN avg. wage = `mean_100'") ///
+>                                         label(2 "LPN avg. wage = `mean_200'") ///
+>                                         label(3 "CNA avg. wage = `med_300'") pos(1) ring(0) region(lwidth(none))) 
+ 13.     graph export ../output/figures/wage.eps, replace
+ 14. end
 
 . 
 . main
-(encoding automatically selected: ISO-8859-2)
-(5 vars, 14,713,086 obs)
-(14,143,420 observations deleted)
-(441,531 observations deleted)
-(84,876 observations deleted)
-invalid syntax
-r(198);
+file ../external/samp/SNF10_2016_NMRC.CSV not found
+r(601);
 
 end of do-file
-r(198);
+r(601);
 

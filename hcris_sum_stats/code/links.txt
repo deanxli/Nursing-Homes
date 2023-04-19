@@ -1,2 +1,2 @@
-./samp/ | /Users/conniexu/Dropbox (Harvard University)/NH Ownership/Data/Medicare Cost Reports/Data by Year/SNF10FY2016
+./samp/ | /Users/conniexu/Dropbox (Harvard University)/NH Ownership/Data/Medicare Cost Reports/Data by Year/
 ./xwalk/ | /Users/conniexu/Dropbox (Harvard University)/NH Ownership/Data/Crosswalks
