@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
-Makelog started: 2022-12-14 09:57:43
+Makelog started: 2023-04-20 16:16:28
 Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/hcris_sum_stats/code
 --------------------------------------------------------------------------------
 External links successfully created!
@@ -49,37 +49,219 @@ Notes:
 
 . 
 . program main   
-  1.     sum_wages
+  1.     desc_stats
   2. end
 
 . 
-. program sum_wages 
-  1.     import delimited using "../external/samp/SNF10_2016_NMRC.CSV", clear 
-  2.     keep if v2 == "S300005"
-  3.     keep if v4 == "00500"
-  4.     keep if inlist(v3, 100, 200, 300)
-  5.     foreach v in 100 200 300 {
-  6.         qui sum v5 if v3 == `v', d 
-  7.         local p99_`v' = r(p99)
-  8.         sum v5 if v3 == `v' &  v5 <= `p99_`v'', d 
-  9.         local mean_`v' = round(r(mean), 0.01)
- 10.         local med_`v' = round(r(p50), 0.01)
+. program desc_stats 
+  1.     use ../external/samp/nh_hcris_wages, clear
+  2.     rename ccn prvdr_num
+  3.     merge m:1 prvdr_num using ../external/pos/posotherdec2021.dta, assert(1 2 3) keep(3) nogen keepusing(state_cd fips_state_cd fips_cnty_cd city_name zip_cd)
+  4.     rename (state_cd zip_cd) (state zip5)
+  5.     gen county = fips_state_cd + fips_cnty_cd
+  6.     drop c_*
+  7.     gcollapse (mean) *_wage, by(prvdr_num yr state zip5 city_name county)
+  8.     drop if mi(rn_wage) & mi(lpn_wage) & mi(cna_wage)
+  9. 
+.     // distribution of average year-over-year-growth 
+.     foreach n in rn lpn cna {
+ 10.         bys prvdr_num (yr) : gen `n'_yoy = (`n'_wage-`n'_wage[_n-1])/(`n'_wage[_n-1]*(yr-yr[_n-1]))*100
  11.     }
- 12. 
-.     tw hist v5 if v3 == 100 & v5 <= `p99_100', frac color(lavender%40) xline(`mean_100', lcolor(black) lpattern(dash)) || ///
->        hist v5 if v3 == 200 &  v5 <= `p99_200', frac color(emerald%40) xline(`mean_200', lcolor(black) lpattern(dash)) || ///
->        hist v5 if v3 == 300 &  v5 <= `p99_300', frac color(navy%40)  xline(`mean_300', lcolor(black) lpattern(dash)) ///
->        ytitle("Fraction of Nursing Homes") xtitle("Hourly Wage") xlabel(0(10)80) legend(on label(1 "RN avg. wage = `mean_100'") ///
->                                         label(2 "LPN avg. wage = `mean_200'") ///
->                                         label(3 "CNA avg. wage = `med_300'") pos(1) ring(0) region(lwidth(none))) 
- 13.     graph export ../output/figures/wage.eps, replace
- 14. end
+ 12.     bys prvdr_num (yr) : gen yr_id = _n
+ 13. 
+.     foreach n in rn lpn cna {
+ 14.         bys prvdr_num (yr): egen min_yr_`n' = min(yr_id) if !mi(`n'_wage)
+ 15.         bys prvdr_num (yr): egen max_yr_`n' = max(yr_id) if !mi(`n'_wage)
+ 16.         gen `n'_wage_min = `n'_wage if yr_id == min_yr_`n'
+ 17.         gen `n'_wage_max = `n'_wage if yr_id == max_yr_`n'
+ 18.         bys prvdr_num (yr): egen `n'_min = max(`n'_wage_min)
+ 19.         bys prvdr_num (yr): egen `n'_max = max(`n'_wage_max)
+ 20.         gen `n'_chg =  (`n'_max - `n'_min)/`n'_min *100
+ 21.     }
+ 22.     drop *min* *max*
+ 23.     preserve
+ 24.     gcollapse (mean) *wage, by(yr)
+ 25.     foreach n in rn lpn cna {
+ 26.         qui sum `n'_wage if yr == 2011
+ 27.         gen `n'_wage_adj = `n'_wage - r(mean)
+ 28.         gen `n'_yoy = (`n'_wage-`n'_wage[_n-1])/ `n'_wage[_n-1] * 100
+ 29.         replace `n'_yoy = 0 if mi(`n'_yoy)
+ 30.     }
+ 31. 
+.     tw line rn_wage_adj yr, color(lavender) || ///
+>        line lpn_wage_adj yr , color(emerald) || ///
+>        line cna_wage_adj  yr, color(navy) ///
+>        ytitle("Average Hourly Wage") xtitle("`upper'") xlabel(2011(1)2022) legend(on label(1 "RN") ///
+>                                         label(2 "LPN") ///
+>                                         label(3 "CNA") pos(1) ring(0) region(lwidth(none))) 
+ 32.     graph export ../output/figures/wage_trends.pdf, replace
+ 33.     tw line rn_yoy yr, color(lavender) || ///
+>        line lpn_yoy yr , color(emerald) || ///
+>        line cna_yoy yr, color(navy) ///
+>        ytitle("Year-over-year % Change in Hourly Wages") xtitle("`upper'") xlabel(2011(1)2022) legend(on label(1 "RN") ///
+>                                         label(2 "LPN") ///
+>                                         label(3 "CNA") pos(1) ring(0) region(lwidth(none))) 
+ 34.     graph export ../output/figures/yoy_trends.pdf, replace
+ 35.     restore
+ 36.     gcollapse (mean) rn* lpn* cna*, by(prvdr_num state zip5 county)
+ 37.     local N = 0
+ 38.     foreach n in rn lpn cna {
+ 39.         qui sum `n'_wage, d
+ 40.         local `n'_wage_mean: di %04.3f r(mean)
+ 41.         local `n'_wage_med: di %04.3f r(p50)
+ 42.         local N = max(`N',r(N))
+ 43.         qui sum `n'_yoy, d
+ 44.         local `n'_yoy_mean: di %04.3f r(mean)
+ 45.         qui sum `n'_chg, d
+ 46.         local `n'_chg_mean: di %04.3f r(mean)
+ 47.     }
+ 48.     // average wage across years for all NH
+. 
+.     foreach var in wage yoy chg {
+ 49.         if "`var'" == "wage" local upper = "Hourly Wage"
+ 50.         if "`var'" == "wage" local lower = "wage"
+ 51.         if "`var'" == "yoy" local upper = "Year-over-year % Change"
+ 52.         if "`var'" == "yoy" local lower = "yoy % change"
+ 53.         if "`var'" == "chg" local upper = "Overall % Change"
+ 54.         if "`var'" == "chg" local lower = "overall % change"
+ 55.         if "`var'" == "wage" local xlab = "0(10)80" 
+ 56.         if "`var'" == "yoy" local xlab = "-80(20)200" 
+ 57.         if "`var'" == "chg" local xlab = "-80(20)200" 
+ 58.         tw hist rn_`var', frac color(lavender%60) xline(`rn_`var'_mean', lcolor(black) lpattern(dash)) || ///
+>            hist lpn_`var', frac color(emerald%60) xline(`lpn_`var'_mean', lcolor(black) lpattern(dash)) || ///
+>            hist cna_`var', frac color(navy%60)  xline(`cna_`var'_mean', lcolor(black) lpattern(dash)) ///
+>            ytitle("Fraction of Nursing Homes") xtitle("`upper'") xlabel(`xlab') legend(on label(1 "RN avg. `lower' = `rn_`var'_mean'") ///
+>                                             label(2 "LPN avg. `lower' = `lpn_`var'_mean'") ///
+>                                             label(3 "CNA avg. `lower' = `cna_`var'_mean'") pos(1) ring(0) region(lwidth(none))) 
+ 59.         graph export ../output/figures/`var'_dist.pdf, replace
+ 60.         destring county, replace
+ 61.         destring zip5, replace
+ 62.         foreach loc in state county {
+ 63.             preserve
+ 64.             gcollapse (mean) *_wage *yoy *chg, by(`loc')
+ 65.             local maptile_loc = "`loc'"
+ 66.             if "`loc'" == "county" local maptile_loc = "county2014"
+ 67.             foreach n in rn lpn cna {
+ 68.                 foreach var in wage yoy chg {
+ 69.                     maptile  `n'_`var', geo(`maptile_loc') fcolor(BuPu)
+ 70.                     graph export ../output/figures/`n'_`var'_`loc'.pdf, replace
+ 71.                 }
+ 72.             }
+ 73.             restore
+ 74.         }
+ 75.     }
+ 76. end
+
+. main
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                           163,722  
+    -----------------------------------------
+(10 missing values generated)
+(13,294 observations deleted)
+(18,711 missing values generated)
+(19,224 missing values generated)
+(18,637 missing values generated)
+(2,473 missing values generated)
+(2,473 missing values generated)
+(128,811 missing values generated)
+(128,811 missing values generated)
+(38 missing values generated)
+(38 missing values generated)
+(38 missing values generated)
+(3,065 missing values generated)
+(3,065 missing values generated)
+(128,856 missing values generated)
+(128,856 missing values generated)
+(186 missing values generated)
+(186 missing values generated)
+(186 missing values generated)
+(2,694 missing values generated)
+(2,694 missing values generated)
+(128,868 missing values generated)
+(128,868 missing values generated)
+(372 missing values generated)
+(372 missing values generated)
+(372 missing values generated)
+(1 missing value generated)
+(1 real change made)
+(1 missing value generated)
+(1 real change made)
+(1 missing value generated)
+(1 real change made)
+file ../output/figures/wage_trends.pdf saved as PDF format
+file ../output/figures/yoy_trends.pdf saved as PDF format
+file ../output/figures/wage_dist.pdf saved as PDF format
+county: all characters numeric; replaced as long
+(1 missing value generated)
+zip5: all characters numeric; replaced as long
+file ../output/figures/rn_wage_state.pdf saved as PDF format
+file ../output/figures/rn_yoy_state.pdf saved as PDF format
+file ../output/figures/rn_chg_state.pdf saved as PDF format
+file ../output/figures/lpn_wage_state.pdf saved as PDF format
+file ../output/figures/lpn_yoy_state.pdf saved as PDF format
+file ../output/figures/lpn_chg_state.pdf saved as PDF format
+file ../output/figures/cna_wage_state.pdf saved as PDF format
+file ../output/figures/cna_yoy_state.pdf saved as PDF format
+file ../output/figures/cna_chg_state.pdf saved as PDF format
+file ../output/figures/rn_wage_county.pdf saved as PDF format
+file ../output/figures/rn_yoy_county.pdf saved as PDF format
+file ../output/figures/rn_chg_county.pdf saved as PDF format
+file ../output/figures/lpn_wage_county.pdf saved as PDF format
+file ../output/figures/lpn_yoy_county.pdf saved as PDF format
+file ../output/figures/lpn_chg_county.pdf saved as PDF format
+file ../output/figures/cna_wage_county.pdf saved as PDF format
+file ../output/figures/cna_yoy_county.pdf saved as PDF format
+file ../output/figures/cna_chg_county.pdf saved as PDF format
+file ../output/figures/yoy_dist.pdf saved as PDF format
+county already numeric; no replace
+zip5 already numeric; no replace
+file ../output/figures/rn_wage_state.pdf saved as PDF format
+file ../output/figures/rn_yoy_state.pdf saved as PDF format
+file ../output/figures/rn_chg_state.pdf saved as PDF format
+file ../output/figures/lpn_wage_state.pdf saved as PDF format
+file ../output/figures/lpn_yoy_state.pdf saved as PDF format
+file ../output/figures/lpn_chg_state.pdf saved as PDF format
+file ../output/figures/cna_wage_state.pdf saved as PDF format
+file ../output/figures/cna_yoy_state.pdf saved as PDF format
+file ../output/figures/cna_chg_state.pdf saved as PDF format
+file ../output/figures/rn_wage_county.pdf saved as PDF format
+file ../output/figures/rn_yoy_county.pdf saved as PDF format
+file ../output/figures/rn_chg_county.pdf saved as PDF format
+file ../output/figures/lpn_wage_county.pdf saved as PDF format
+file ../output/figures/lpn_yoy_county.pdf saved as PDF format
+file ../output/figures/lpn_chg_county.pdf saved as PDF format
+file ../output/figures/cna_wage_county.pdf saved as PDF format
+file ../output/figures/cna_yoy_county.pdf saved as PDF format
+file ../output/figures/cna_chg_county.pdf saved as PDF format
+file ../output/figures/chg_dist.pdf saved as PDF format
+county already numeric; no replace
+zip5 already numeric; no replace
+file ../output/figures/rn_wage_state.pdf saved as PDF format
+file ../output/figures/rn_yoy_state.pdf saved as PDF format
+file ../output/figures/rn_chg_state.pdf saved as PDF format
+file ../output/figures/lpn_wage_state.pdf saved as PDF format
+file ../output/figures/lpn_yoy_state.pdf saved as PDF format
+file ../output/figures/lpn_chg_state.pdf saved as PDF format
+file ../output/figures/cna_wage_state.pdf saved as PDF format
+file ../output/figures/cna_yoy_state.pdf saved as PDF format
+file ../output/figures/cna_chg_state.pdf saved as PDF format
+file ../output/figures/rn_wage_county.pdf saved as PDF format
+file ../output/figures/rn_yoy_county.pdf saved as PDF format
+file ../output/figures/rn_chg_county.pdf saved as PDF format
+file ../output/figures/lpn_wage_county.pdf saved as PDF format
+file ../output/figures/lpn_yoy_county.pdf saved as PDF format
+file ../output/figures/lpn_chg_county.pdf saved as PDF format
+file ../output/figures/cna_wage_county.pdf saved as PDF format
+file ../output/figures/cna_yoy_county.pdf saved as PDF format
+file ../output/figures/cna_chg_county.pdf saved as PDF format
 
 . 
-. main
-file ../external/samp/SNF10_2016_NMRC.CSV not found
-r(601);
-
 end of do-file
-r(601);
 
+--------------------------------------------------------------------------------
+Makelog ended: 2023-04-20 16:17:13
+Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/hcris_sum_stats/code
+--------------------------------------------------------------------------------

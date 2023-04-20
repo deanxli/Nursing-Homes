@@ -1,2 +1,3 @@
-./samp/ | /Users/conniexu/Dropbox (Harvard University)/NH Ownership/Data/Medicare Cost Reports/Data by Year/
+./samp/ | /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/clean_hcris/output
 ./xwalk/ | /Users/conniexu/Dropbox (Harvard University)/NH Ownership/Data/Crosswalks
+./pos/ | /Users/conniexu/Dropbox (Harvard University)/NH Ownership/Data/Staffing Data/POS Yearly
