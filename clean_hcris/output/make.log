@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
-Makelog started: 2023-04-19 22:49:01
+Makelog started: 2023-04-20 12:41:26
 Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/clean_hcris/code
 --------------------------------------------------------------------------------
 External links successfully created!
@@ -55,210 +55,617 @@ Notes:
 . 
 . program import_append 
   1.     forval yr = 2011/2022 {
-  2.         import delimited using "../external/samp/SNF10FY`yr'/SNF10_`yr'_NMRC.CSV", clear
-  3.         keep if v2 == "S300005"
-  4.         keep if v4 == "00500"
-  5.         keep if inlist(v3, 100, 200, 300, 1400, 1500, 1600)
+  2.         // get ccns
+.         import delimited using "../external/samp/SNF10FY`yr'/SNF10_`yr'_ALPHA.CSV", clear
+  3.         keep if v2 == "S200001" & v3 == 400 & v4 == 200
+  4.         keep v1 v5
+  5.         rename (v1 v5) (id ccn)
   6.         gen yr = `yr'
-  7.         save ../temp/wage`yr', replace
-  8.     }
-  9.     clear
- 10.     forval yr = 2011/2022 { 
- 11.         append using ../temp/wage`yr'
- 12.     }
- 13.     save ../temp/nh_hcris_wages, replace
- 14. 
-.     foreach v in 100 200 300 1400 1500 1600 {
- 15.         qui sum v5 if v3 == `v', d 
- 16.         local p99_`v' = r(p99)
- 17.         sum v5 if v3 == `v' &  v5 <= `p99_`v'', d 
- 18.         local mean_`v' = round(r(mean), 0.01)
- 19.         local med_`v' = round(r(p50), 0.01)
- 20.     }
- 21. end
+  7.         gduplicates drop
+  8.         save ../temp/hcris_ccn_`yr'_xwalk, replace
+  9.     
+.         //clean s3 part 1
+.         import delimited using "../external/samp/SNF10FY`yr'/SNF10_`yr'_NMRC.CSV", clear
+ 10.         keep if v2 == "S300001" & v3 == 100
+ 11.         drop v2 v3
+ 12.         rename (v1 v4 v5) (id var val)
+ 13.         keep if inlist(var, "02200", "02300")
+ 14.         reshape wide val, i(id) j(var) string
+ 15.         rename (val02200 val02300) (num_fte_paid num_fte_nonpaid)
+ 16.         gen yr = `yr'
+ 17.         save ../temp/payroll_wrkers_`yr', replace
+ 18.         
+.         //clean s3 part 2
+.         import delimited using "../external/samp/SNF10FY`yr'/SNF10_`yr'_NMRC.CSV", clear
+ 19.         keep if v2 == "S300005" & v4 == "00500" & inlist(v3, 100, 200, 300, 1400, 1500, 1600)
+ 20.         keep v1 v3 v5
+ 21.         rename (v1 v3 v5) (id var val)
+ 22.         reshape wide val, i(id) j(var) 
+ 23.         rename (val100 val200 val300 val1400 val1500 val1600) (rn_wage lpn_wage cna_wage c_rn_wage c_lpn_wage c_cna_wage)
+ 24.         gen yr = `yr'
+ 25.         foreach n in rn lpn cna {
+ 26.             replace `n'_wage = . if `n'_wage < 0 
+ 27.         }
+ 28.         save ../temp/wage`yr', replace
+ 29.     }
+ 30.     clear
+ 31.     forval yr = 2011/2022 { 
+ 32.         append using ../temp/hcris_ccn_`yr'_xwalk
+ 33.     }
+ 34.     gduplicates drop
+ 35.     save ../output/hcris_ccn_xwalk, replace
+ 36.     forval yr = 2011/2022 { 
+ 37.         append using ../temp/wage`yr'
+ 38.     }
+ 39.     merge m:1 id yr using ../output/hcris_ccn_xwalk, assert(1 2 3) keep(3) nogen
+ 40.     bys id yr: gen num_entries = _n
+ 41.     bys id yr ccn: gen ccn_cntr = _n == 1 & !mi(ccn)
+ 42.     bys id yr: egen tot_ccn = total(ccn_cntr)
+ 43.     gsort id ccn yr
+ 44.     bys id yr: replace ccn = ccn[_n+1] if mi(ccn) & tot_ccn == 1
+ 45.     bys id yr: egen tot_entries = max(num_entries)
+ 46.     drop if tot_entries > 1 & mi(rn_wage) & mi(lpn_wage) & mi(cna_wage)
+ 47.     drop num* tot* ccn_cntr
+ 48.     gisid id yr
+ 49.     foreach n in rn lpn cna {
+ 50.         bys ccn (yr): replace `n'_wage = . if `n'_wage > 5*`n'_wage[_n-1]
+ 51.         bys ccn (yr): replace `n'_wage = . if `n'_wage > 5*`n'_wage[_n+1]
+ 52.     }
+ 53.     save ../output/nh_hcris_wages, replace
+ 54. 
+.     clear
+ 55.     forval yr = 2011/2022 { 
+ 56.         append using ../temp/payroll_wrkers_`yr'
+ 57.     }
+ 58.     save ../output/payroll_wrkers, replace
+ 59. end
 
 . main
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 3,433,507 obs)
+(3,420,663 observations deleted)
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+(file ../temp/hcris_ccn_2011_xwalk.dta not found)
+file ../temp/hcris_ccn_2011_xwalk.dta saved
 (encoding automatically selected: ISO-8859-2)
 (5 vars, 12,572,155 obs)
-(12,425,136 observations deleted)
-(113,752 observations deleted)
-(19,389 observations deleted)
+(12,356,581 observations deleted)
+(202,953 observations deleted)
+(j = 02200 02300)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           12,621   ->   12,571      
+Number of variables                   3   ->   3           
+j variable (2 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val02200 val02300
+-----------------------------------------------------------------------------
+(file ../temp/payroll_wrkers_2011.dta not found)
+file ../temp/payroll_wrkers_2011.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 12,572,155 obs)
+(12,558,277 observations deleted)
+(j = 100 200 300 1400 1500 1600)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           13,878   ->   4,056       
+Number of variables                   3   ->   7           
+j variable (6 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val100 val200 ... val1600
+-----------------------------------------------------------------------------
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
 (file ../temp/wage2011.dta not found)
 file ../temp/wage2011.dta saved
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 3,936,176 obs)
+(3,921,488 observations deleted)
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+(file ../temp/hcris_ccn_2012_xwalk.dta not found)
+file ../temp/hcris_ccn_2012_xwalk.dta saved
 (encoding automatically selected: ISO-8859-2)
 (5 vars, 14,513,692 obs)
-(14,030,170 observations deleted)
-(375,220 observations deleted)
-(62,581 observations deleted)
+(14,265,089 observations deleted)
+(234,196 observations deleted)
+(j = 02200 02300)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           14,407   ->   14,353      
+Number of variables                   3   ->   3           
+j variable (2 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val02200 val02300
+-----------------------------------------------------------------------------
+(file ../temp/payroll_wrkers_2012.dta not found)
+file ../temp/payroll_wrkers_2012.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,513,692 obs)
+(14,467,971 observations deleted)
+(j = 100 200 300 1400 1500 1600)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           45,721   ->   13,411      
+Number of variables                   3   ->   7           
+j variable (6 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val100 val200 ... val1600
+-----------------------------------------------------------------------------
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
 (file ../temp/wage2012.dta not found)
 file ../temp/wage2012.dta saved
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 3,947,042 obs)
+(3,932,328 observations deleted)
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+(file ../temp/hcris_ccn_2013_xwalk.dta not found)
+file ../temp/hcris_ccn_2013_xwalk.dta saved
 (encoding automatically selected: ISO-8859-2)
 (5 vars, 14,535,376 obs)
-(14,002,999 observations deleted)
-(413,194 observations deleted)
-(69,738 observations deleted)
+(14,286,078 observations deleted)
+(234,916 observations deleted)
+(j = 02200 02300)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           14,382   ->   14,338      
+Number of variables                   3   ->   3           
+j variable (2 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val02200 val02300
+-----------------------------------------------------------------------------
+(file ../temp/payroll_wrkers_2013.dta not found)
+file ../temp/payroll_wrkers_2013.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,535,376 obs)
+(14,485,931 observations deleted)
+(j = 100 200 300 1400 1500 1600)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           49,445   ->   14,412      
+Number of variables                   3   ->   7           
+j variable (6 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val100 val200 ... val1600
+-----------------------------------------------------------------------------
+(0 real changes made)
+(0 real changes made)
+(1 real change made, 1 to missing)
 (file ../temp/wage2013.dta not found)
 file ../temp/wage2013.dta saved
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 3,991,034 obs)
+(3,976,078 observations deleted)
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+(file ../temp/hcris_ccn_2014_xwalk.dta not found)
+file ../temp/hcris_ccn_2014_xwalk.dta saved
 (encoding automatically selected: ISO-8859-2)
 (5 vars, 14,625,295 obs)
-(14,085,406 observations deleted)
-(419,154 observations deleted)
-(70,141 observations deleted)
+(14,373,582 observations deleted)
+(237,198 observations deleted)
+(j = 02200 02300)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           14,515   ->   14,467      
+Number of variables                   3   ->   3           
+j variable (2 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val02200 val02300
+-----------------------------------------------------------------------------
+(file ../temp/payroll_wrkers_2014.dta not found)
+file ../temp/payroll_wrkers_2014.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,625,295 obs)
+(14,574,701 observations deleted)
+(j = 100 200 300 1400 1500 1600)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           50,594   ->   14,553      
+Number of variables                   3   ->   7           
+j variable (6 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val100 val200 ... val1600
+-----------------------------------------------------------------------------
+(1 real change made, 1 to missing)
+(1 real change made, 1 to missing)
+(1 real change made, 1 to missing)
 (file ../temp/wage2014.dta not found)
 file ../temp/wage2014.dta saved
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 4,139,951 obs)
+(4,124,548 observations deleted)
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+(file ../temp/hcris_ccn_2015_xwalk.dta not found)
+file ../temp/hcris_ccn_2015_xwalk.dta saved
 (encoding automatically selected: ISO-8859-2)
 (5 vars, 15,003,937 obs)
-(14,438,419 observations deleted)
-(438,480 observations deleted)
-(73,489 observations deleted)
+(14,745,181 observations deleted)
+(243,849 observations deleted)
+(j = 02200 02300)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           14,907   ->   14,851      
+Number of variables                   3   ->   3           
+j variable (2 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val02200 val02300
+-----------------------------------------------------------------------------
+(file ../temp/payroll_wrkers_2015.dta not found)
+file ../temp/payroll_wrkers_2015.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 15,003,937 obs)
+(14,950,388 observations deleted)
+(j = 100 200 300 1400 1500 1600)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           53,549   ->   14,951      
+Number of variables                   3   ->   7           
+j variable (6 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val100 val200 ... val1600
+-----------------------------------------------------------------------------
+(0 real changes made)
+(1 real change made, 1 to missing)
+(1 real change made, 1 to missing)
 (file ../temp/wage2015.dta not found)
 file ../temp/wage2015.dta saved
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 4,011,862 obs)
+(3,996,756 observations deleted)
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+(file ../temp/hcris_ccn_2016_xwalk.dta not found)
+file ../temp/hcris_ccn_2016_xwalk.dta saved
 (encoding automatically selected: ISO-8859-2)
 (5 vars, 14,713,086 obs)
-(14,143,420 observations deleted)
-(441,531 observations deleted)
-(73,629 observations deleted)
+(14,458,841 observations deleted)
+(239,652 observations deleted)
+(j = 02200 02300)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           14,593   ->   14,546      
+Number of variables                   3   ->   3           
+j variable (2 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val02200 val02300
+-----------------------------------------------------------------------------
+(file ../temp/payroll_wrkers_2016.dta not found)
+file ../temp/payroll_wrkers_2016.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,713,086 obs)
+(14,658,580 observations deleted)
+(j = 100 200 300 1400 1500 1600)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           54,506   ->   14,648      
+Number of variables                   3   ->   7           
+j variable (6 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val100 val200 ... val1600
+-----------------------------------------------------------------------------
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
 (file ../temp/wage2016.dta not found)
 file ../temp/wage2016.dta saved
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 4,076,711 obs)
+(4,061,278 observations deleted)
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+(file ../temp/hcris_ccn_2017_xwalk.dta not found)
+file ../temp/hcris_ccn_2017_xwalk.dta saved
 (encoding automatically selected: ISO-8859-2)
 (5 vars, 15,134,308 obs)
-(14,539,943 observations deleted)
-(460,437 observations deleted)
-(76,273 observations deleted)
+(14,869,901 observations deleted)
+(249,273 observations deleted)
+(j = 02200 02300)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           15,134   ->   15,087      
+Number of variables                   3   ->   3           
+j variable (2 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val02200 val02300
+-----------------------------------------------------------------------------
+(file ../temp/payroll_wrkers_2017.dta not found)
+file ../temp/payroll_wrkers_2017.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 15,134,308 obs)
+(15,076,653 observations deleted)
+(j = 100 200 300 1400 1500 1600)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           57,655   ->   15,182      
+Number of variables                   3   ->   7           
+j variable (6 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val100 val200 ... val1600
+-----------------------------------------------------------------------------
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
 (file ../temp/wage2017.dta not found)
 file ../temp/wage2017.dta saved
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 3,954,061 obs)
+(3,938,922 observations deleted)
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+(file ../temp/hcris_ccn_2018_xwalk.dta not found)
+file ../temp/hcris_ccn_2018_xwalk.dta saved
 (encoding automatically selected: ISO-8859-2)
 (5 vars, 14,793,411 obs)
-(14,204,893 observations deleted)
-(456,104 observations deleted)
-(74,403 observations deleted)
+(14,534,037 observations deleted)
+(244,551 observations deleted)
+(j = 02200 02300)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           14,823   ->   14,793      
+Number of variables                   3   ->   3           
+j variable (2 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val02200 val02300
+-----------------------------------------------------------------------------
+(file ../temp/payroll_wrkers_2018.dta not found)
+file ../temp/payroll_wrkers_2018.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,793,411 obs)
+(14,735,400 observations deleted)
+(j = 100 200 300 1400 1500 1600)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           58,011   ->   14,878      
+Number of variables                   3   ->   7           
+j variable (6 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val100 val200 ... val1600
+-----------------------------------------------------------------------------
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
 (file ../temp/wage2018.dta not found)
 file ../temp/wage2018.dta saved
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 3,972,101 obs)
+(3,956,921 observations deleted)
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+(file ../temp/hcris_ccn_2019_xwalk.dta not found)
+file ../temp/hcris_ccn_2019_xwalk.dta saved
 (encoding automatically selected: ISO-8859-2)
 (5 vars, 14,762,288 obs)
-(14,164,923 observations deleted)
-(462,899 observations deleted)
-(75,070 observations deleted)
+(14,501,270 observations deleted)
+(246,134 observations deleted)
+(j = 02200 02300)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           14,884   ->   14,851      
+Number of variables                   3   ->   3           
+j variable (2 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val02200 val02300
+-----------------------------------------------------------------------------
+(file ../temp/payroll_wrkers_2019.dta not found)
+file ../temp/payroll_wrkers_2019.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,762,288 obs)
+(14,702,892 observations deleted)
+(j = 100 200 300 1400 1500 1600)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           59,396   ->   14,941      
+Number of variables                   3   ->   7           
+j variable (6 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val100 val200 ... val1600
+-----------------------------------------------------------------------------
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
 (file ../temp/wage2019.dta not found)
 file ../temp/wage2019.dta saved
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 3,904,141 obs)
+(3,889,212 observations deleted)
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+(file ../temp/hcris_ccn_2020_xwalk.dta not found)
+file ../temp/hcris_ccn_2020_xwalk.dta saved
 (encoding automatically selected: ISO-8859-2)
 (5 vars, 14,225,638 obs)
-(13,609,857 observations deleted)
-(476,901 observations deleted)
-(75,370 observations deleted)
+(13,968,014 observations deleted)
+(242,955 observations deleted)
+(j = 02200 02300)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           14,669   ->   14,639      
+Number of variables                   3   ->   3           
+j variable (2 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val02200 val02300
+-----------------------------------------------------------------------------
+(file ../temp/payroll_wrkers_2020.dta not found)
+file ../temp/payroll_wrkers_2020.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,225,638 obs)
+(14,162,128 observations deleted)
+(j = 100 200 300 1400 1500 1600)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           63,510   ->   14,735      
+Number of variables                   3   ->   7           
+j variable (6 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val100 val200 ... val1600
+-----------------------------------------------------------------------------
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
 (file ../temp/wage2020.dta not found)
 file ../temp/wage2020.dta saved
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 3,921,975 obs)
+(3,906,938 observations deleted)
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+(file ../temp/hcris_ccn_2021_xwalk.dta not found)
+file ../temp/hcris_ccn_2021_xwalk.dta saved
 (encoding automatically selected: ISO-8859-2)
 (5 vars, 14,197,093 obs)
-(13,547,863 observations deleted)
-(502,488 observations deleted)
-(78,311 observations deleted)
+(13,937,464 observations deleted)
+(244,882 observations deleted)
+(j = 02200 02300)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           14,747   ->   14,717      
+Number of variables                   3   ->   3           
+j variable (2 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val02200 val02300
+-----------------------------------------------------------------------------
+(file ../temp/payroll_wrkers_2021.dta not found)
+file ../temp/payroll_wrkers_2021.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,197,093 obs)
+(14,128,662 observations deleted)
+(j = 100 200 300 1400 1500 1600)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations           68,431   ->   14,831      
+Number of variables                   3   ->   7           
+j variable (6 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val100 val200 ... val1600
+-----------------------------------------------------------------------------
+(1 real change made, 1 to missing)
+(0 real changes made)
+(0 real changes made)
 (file ../temp/wage2021.dta not found)
 file ../temp/wage2021.dta saved
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 409,459 obs)
+(407,866 observations deleted)
+
+Duplicates in terms of all variables
+
+(0 observations are duplicates)
+(file ../temp/hcris_ccn_2022_xwalk.dta not found)
+file ../temp/hcris_ccn_2022_xwalk.dta saved
 (encoding automatically selected: ISO-8859-2)
 (5 vars, 1,473,264 obs)
-(1,404,024 observations deleted)
-(53,459 observations deleted)
-(8,409 observations deleted)
+(1,445,992 observations deleted)
+(25,720 observations deleted)
+(j = 02200 02300)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations            1,552   ->   1,547       
+Number of variables                   3   ->   3           
+j variable (2 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val02200 val02300
+-----------------------------------------------------------------------------
+(file ../temp/payroll_wrkers_2022.dta not found)
+file ../temp/payroll_wrkers_2022.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 1,473,264 obs)
+(1,465,892 observations deleted)
+(j = 100 200 300 1400 1500 1600)
+
+Data                               Long   ->   Wide
+-----------------------------------------------------------------------------
+Number of observations            7,372   ->   1,564       
+Number of variables                   3   ->   7           
+j variable (6 values)               var   ->   (dropped)
+xij variables:
+                                    val   ->   val100 val200 ... val1600
+-----------------------------------------------------------------------------
+(0 real changes made)
+(0 real changes made)
+(0 real changes made)
 (file ../temp/wage2022.dta not found)
 file ../temp/wage2022.dta saved
-(file ../temp/nh_hcris_wages.dta not found)
-file ../temp/nh_hcris_wages.dta saved
 
-                             v5
--------------------------------------------------------------
-      Percentiles      Smallest
- 1%        18.55       -7613.59
- 5%           24          -2.37
-10%        26.16            .02       Obs             148,748
-25%        30.24            .02       Sum of wgt.     148,748
+Duplicates in terms of all variables
 
-50%        35.35                      Mean           36.22608
-                        Largest       Std. dev.      21.70854
-75%        41.35           69.1
-90%        47.79          69.13       Variance       471.2605
-95%        52.35          69.13       Skewness      -294.1464
-99%        61.59          69.13       Kurtosis       103666.2
+(0 observations are duplicates)
+(file ../output/hcris_ccn_xwalk.dta not found)
+file ../output/hcris_ccn_xwalk.dta saved
 
-                             v5
--------------------------------------------------------------
-      Percentiles      Smallest
- 1%        15.58       -5980.33
- 5%        18.58           -.61
-10%        20.17            .03       Obs             148,102
-25%        23.12            .03       Sum of wgt.     148,102
-
-50%        26.99                      Mean           27.72053
-                        Largest       Std. dev.      16.90433
-75%        31.78          49.55
-90%        36.56          49.55       Variance       285.7564
-95%        39.67          49.55       Skewness      -303.1177
-99%        45.26          49.55       Kurtosis       107742.6
-
-                             v5
--------------------------------------------------------------
-      Percentiles      Smallest
- 1%          8.8      -17642.95
- 5%        10.28         -12.83
-10%        11.18           -.35       Obs             148,568
-25%        12.96            .02       Sum of wgt.     148,568
-
-50%        15.41                      Mean           15.88191
-                        Largest       Std. dev.      46.00532
-75%        18.46          30.96
-90%        21.71          30.97       Variance       2116.489
-95%        23.91          30.98       Skewness      -380.6626
-99%        28.01          30.98       Kurtosis       146115.5
-
-                             v5
--------------------------------------------------------------
-      Percentiles      Smallest
- 1%        20.41           -100
- 5%           30          -22.4
-10%        36.19          -2.55       Obs              42,273
-25%        45.74            .01       Sum of wgt.      42,273
-
-50%           55                      Mean           58.44237
-                        Largest       Std. dev.      25.40963
-75%        65.49          316.5
-90%        80.03          316.7       Variance       645.6493
-95%         93.8         317.69       Skewness       3.796814
-99%       154.28            318       Kurtosis       30.05177
-
-                             v5
--------------------------------------------------------------
-      Percentiles      Smallest
- 1%        18.75           -795
- 5%        25.95            .01
-10%           30            .01       Obs              43,476
-25%        36.34            .01       Sum of wgt.      43,476
-
-50%        43.67                      Mean           44.87283
-                        Largest       Std. dev.      13.84317
-75%        51.33         100.45
-90%        61.58         100.45       Variance       191.6335
-95%        69.49         100.45       Skewness      -4.429251
-99%        87.15         100.49       Kurtosis       315.4928
-
-                             v5
--------------------------------------------------------------
-      Percentiles      Smallest
- 1%        10.45         -73.59
- 5%        14.97         -32.26
-10%        17.79            -32       Obs              45,085
-25%           22            .02       Sum of wgt.      45,085
-
-50%           27                      Mean            28.6303
-                        Largest       Std. dev.      10.05279
-75%        33.72          72.71
-90%        41.43          72.76       Variance       101.0585
-95%        47.91          72.82       Skewness       .9409623
-99%        60.73          72.87       Kurtosis       4.960729
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                           317,184  
+    -----------------------------------------
+(152,162 real changes made)
+(153,426 observations deleted)
+(383 real changes made, 383 to missing)
+(234 real changes made, 234 to missing)
+(246 real changes made, 246 to missing)
+(156 real changes made, 156 to missing)
+(313 real changes made, 313 to missing)
+(167 real changes made, 167 to missing)
+(file ../output/nh_hcris_wages.dta not found)
+file ../output/nh_hcris_wages.dta saved
+(file ../output/payroll_wrkers.dta not found)
+file ../output/payroll_wrkers.dta saved
 
 . 
 end of do-file
 
 --------------------------------------------------------------------------------
-Makelog ended: 2023-04-19 22:53:13
+Makelog ended: 2023-04-20 12:50:52
 Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/clean_hcris/code
 --------------------------------------------------------------------------------
