@@ -1,0 +1,264 @@
+--------------------------------------------------------------------------------
+Makelog started: 2023-04-19 22:49:01
+Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/clean_hcris/code
+--------------------------------------------------------------------------------
+External links successfully created!
+
+  ___  ____  ____  ____  ____ ®
+ /__    /   ____/   /   ____/      17.0
+___/   /   /___/   /   /___/       MP—Parallel Edition
+
+ Statistics and Data Science       Copyright 1985-2021 StataCorp LLC
+                                   StataCorp
+                                   4905 Lakeway Drive
+                                   College Station, Texas 77845 USA
+                                   800-STATA-PC        https://www.stata.com
+                                   979-696-4600        stata@stata.com
+
+Stata license: Unlimited-user 4-core network, expiring 30 Jun 2023
+Serial number: 501709311471
+  Licensed to: Harvard University
+               Harvard University
+
+Notes:
+      1. Stata is running in batch mode.
+      2. Unicode is supported; see help unicode_advice.
+      3. More than 2 billion observations are allowed; see help obs_advice.
+      4. Maximum number of variables is set to 120,000; see help set_maxvar.
+
+. do "/Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/clean_h
+> cris/code/build.do" 
+
+. set more off
+
+. clear all
+
+. capture log close
+
+. program drop _all
+
+. set scheme modern
+
+. preliminaries
+
+. version 17
+
+. set maxvar 120000, perm
+(set maxvar preference recorded)
+
+
+. 
+. program main   
+  1.     import_append
+  2. end
+
+. 
+. program import_append 
+  1.     forval yr = 2011/2022 {
+  2.         import delimited using "../external/samp/SNF10FY`yr'/SNF10_`yr'_NMRC.CSV", clear
+  3.         keep if v2 == "S300005"
+  4.         keep if v4 == "00500"
+  5.         keep if inlist(v3, 100, 200, 300, 1400, 1500, 1600)
+  6.         gen yr = `yr'
+  7.         save ../temp/wage`yr', replace
+  8.     }
+  9.     clear
+ 10.     forval yr = 2011/2022 { 
+ 11.         append using ../temp/wage`yr'
+ 12.     }
+ 13.     save ../temp/nh_hcris_wages, replace
+ 14. 
+.     foreach v in 100 200 300 1400 1500 1600 {
+ 15.         qui sum v5 if v3 == `v', d 
+ 16.         local p99_`v' = r(p99)
+ 17.         sum v5 if v3 == `v' &  v5 <= `p99_`v'', d 
+ 18.         local mean_`v' = round(r(mean), 0.01)
+ 19.         local med_`v' = round(r(p50), 0.01)
+ 20.     }
+ 21. end
+
+. main
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 12,572,155 obs)
+(12,425,136 observations deleted)
+(113,752 observations deleted)
+(19,389 observations deleted)
+(file ../temp/wage2011.dta not found)
+file ../temp/wage2011.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,513,692 obs)
+(14,030,170 observations deleted)
+(375,220 observations deleted)
+(62,581 observations deleted)
+(file ../temp/wage2012.dta not found)
+file ../temp/wage2012.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,535,376 obs)
+(14,002,999 observations deleted)
+(413,194 observations deleted)
+(69,738 observations deleted)
+(file ../temp/wage2013.dta not found)
+file ../temp/wage2013.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,625,295 obs)
+(14,085,406 observations deleted)
+(419,154 observations deleted)
+(70,141 observations deleted)
+(file ../temp/wage2014.dta not found)
+file ../temp/wage2014.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 15,003,937 obs)
+(14,438,419 observations deleted)
+(438,480 observations deleted)
+(73,489 observations deleted)
+(file ../temp/wage2015.dta not found)
+file ../temp/wage2015.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,713,086 obs)
+(14,143,420 observations deleted)
+(441,531 observations deleted)
+(73,629 observations deleted)
+(file ../temp/wage2016.dta not found)
+file ../temp/wage2016.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 15,134,308 obs)
+(14,539,943 observations deleted)
+(460,437 observations deleted)
+(76,273 observations deleted)
+(file ../temp/wage2017.dta not found)
+file ../temp/wage2017.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,793,411 obs)
+(14,204,893 observations deleted)
+(456,104 observations deleted)
+(74,403 observations deleted)
+(file ../temp/wage2018.dta not found)
+file ../temp/wage2018.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,762,288 obs)
+(14,164,923 observations deleted)
+(462,899 observations deleted)
+(75,070 observations deleted)
+(file ../temp/wage2019.dta not found)
+file ../temp/wage2019.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,225,638 obs)
+(13,609,857 observations deleted)
+(476,901 observations deleted)
+(75,370 observations deleted)
+(file ../temp/wage2020.dta not found)
+file ../temp/wage2020.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 14,197,093 obs)
+(13,547,863 observations deleted)
+(502,488 observations deleted)
+(78,311 observations deleted)
+(file ../temp/wage2021.dta not found)
+file ../temp/wage2021.dta saved
+(encoding automatically selected: ISO-8859-2)
+(5 vars, 1,473,264 obs)
+(1,404,024 observations deleted)
+(53,459 observations deleted)
+(8,409 observations deleted)
+(file ../temp/wage2022.dta not found)
+file ../temp/wage2022.dta saved
+(file ../temp/nh_hcris_wages.dta not found)
+file ../temp/nh_hcris_wages.dta saved
+
+                             v5
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%        18.55       -7613.59
+ 5%           24          -2.37
+10%        26.16            .02       Obs             148,748
+25%        30.24            .02       Sum of wgt.     148,748
+
+50%        35.35                      Mean           36.22608
+                        Largest       Std. dev.      21.70854
+75%        41.35           69.1
+90%        47.79          69.13       Variance       471.2605
+95%        52.35          69.13       Skewness      -294.1464
+99%        61.59          69.13       Kurtosis       103666.2
+
+                             v5
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%        15.58       -5980.33
+ 5%        18.58           -.61
+10%        20.17            .03       Obs             148,102
+25%        23.12            .03       Sum of wgt.     148,102
+
+50%        26.99                      Mean           27.72053
+                        Largest       Std. dev.      16.90433
+75%        31.78          49.55
+90%        36.56          49.55       Variance       285.7564
+95%        39.67          49.55       Skewness      -303.1177
+99%        45.26          49.55       Kurtosis       107742.6
+
+                             v5
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%          8.8      -17642.95
+ 5%        10.28         -12.83
+10%        11.18           -.35       Obs             148,568
+25%        12.96            .02       Sum of wgt.     148,568
+
+50%        15.41                      Mean           15.88191
+                        Largest       Std. dev.      46.00532
+75%        18.46          30.96
+90%        21.71          30.97       Variance       2116.489
+95%        23.91          30.98       Skewness      -380.6626
+99%        28.01          30.98       Kurtosis       146115.5
+
+                             v5
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%        20.41           -100
+ 5%           30          -22.4
+10%        36.19          -2.55       Obs              42,273
+25%        45.74            .01       Sum of wgt.      42,273
+
+50%           55                      Mean           58.44237
+                        Largest       Std. dev.      25.40963
+75%        65.49          316.5
+90%        80.03          316.7       Variance       645.6493
+95%         93.8         317.69       Skewness       3.796814
+99%       154.28            318       Kurtosis       30.05177
+
+                             v5
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%        18.75           -795
+ 5%        25.95            .01
+10%           30            .01       Obs              43,476
+25%        36.34            .01       Sum of wgt.      43,476
+
+50%        43.67                      Mean           44.87283
+                        Largest       Std. dev.      13.84317
+75%        51.33         100.45
+90%        61.58         100.45       Variance       191.6335
+95%        69.49         100.45       Skewness      -4.429251
+99%        87.15         100.49       Kurtosis       315.4928
+
+                             v5
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%        10.45         -73.59
+ 5%        14.97         -32.26
+10%        17.79            -32       Obs              45,085
+25%           22            .02       Sum of wgt.      45,085
+
+50%           27                      Mean            28.6303
+                        Largest       Std. dev.      10.05279
+75%        33.72          72.71
+90%        41.43          72.76       Variance       101.0585
+95%        47.91          72.82       Skewness       .9409623
+99%        60.73          72.87       Kurtosis       4.960729
+
+. 
+end of do-file
+
+--------------------------------------------------------------------------------
+Makelog ended: 2023-04-19 22:53:13
+Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/clean_hcris/code
+--------------------------------------------------------------------------------
