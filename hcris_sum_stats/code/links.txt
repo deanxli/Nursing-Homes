@@ -1,3 +1,4 @@
 ./samp/ | /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/clean_hcris/output
 ./xwalk/ | /Users/conniexu/Dropbox (Harvard University)/NH Ownership/Data/Crosswalks
+./geo/ | /Users/conniexu/Dropbox (Harvard University)/NH Ownership/Data/Geography
 ./pos/ | /Users/conniexu/Dropbox (Harvard University)/NH Ownership/Data/Staffing Data/POS Yearly
