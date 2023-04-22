@@ -139,8 +139,20 @@ program within_mkt_stats
                                         label(2 "LPN:" "mean = `lpn_mean'" "           (`lpn_sd')") ///
                                         label(3 "CNA:" "mean = `cna_mean'" "           (`cna_sd')") pos(1) ring(0) region(lwidth(none))) 
     graph export ../output/figures/within_county_diff.pdf, replace
+    gcollapse (sd) *wage, by(county yr)
+    foreach n in rn lpn cna {
+        qui sum `n'_wage, d
+        local `n'_mean: di %4.3f r(mean)
+        local `n'_sd: di %4.3f r(sd)
+    }
+    tw hist rn_wage, frac color(lavender%60) xline(`rn_mean', lcolor(black) lpattern(dash)) || ///
+       hist lpn_wage, frac color(emerald%60) xline(`lpn_mean', lcolor(black) lpattern(dash)) || ///
+       hist cna_wage, frac color(navy%60)  xline(`cna_mean', lcolor(black) lpattern(dash)) ///
+       ytitle("Proportion of Nursing Homes") xtitle("Standard Deviation Within County-Year") xlabel(0(5)30) legend(on label(1 "RN:" "mean = `rn_mean'" "           (`rn_sd')") ///
+                                        label(2 "LPN:" "mean = `lpn_mean'" "           (`lpn_sd')") ///
+                                        label(3 "CNA:" "mean = `cna_mean'" "           (`cna_sd')") pos(1) ring(0) region(lwidth(none))) 
+    graph export ../output/figures/within_county_sd.pdf, replace
 end 
-
 program maps
 *    set scheme white_tableau
     spshape2dta ../external/geo/cb_2018_us_state_500k.shp, replace saving(usa_state)
@@ -176,25 +188,29 @@ program maps
        egen cut_`n'_wage = cut(`n'_wage), at(0,10,20,30,40,50,60,70) icodes
        xtile xtile_`n'_wage = `n'_wage, n(4)
     }
-/*    foreach n in rn lpn cna {
-        qui sum `n'_wage, d
+    foreach n in rn lpn cna {
+/*        qui sum `n'_wage, d
         local clb_wage = "r(p5) r(p10) r(p25) r(p50) r(p75) r(p90) r(p99)"
         qui sum `n'_sd, d
-        local clb_sd = "r(p5) r(p10) r(p25) r(p50) r(p75) r(p90) r(p99)"
-/*        if "`n'" == "rn" local clb "0 15 25 35 45 63"
-        if "`n'" == "lpn" local clb "0 10 15 25 35 45 50"
-        if "`n'" == "cna" local clb "0 5 10 15 20 25 30"*/
-        spmap `n'_wage using usa_county_shp_clean,  id(_ID) clm(quantile) fcolor(BuPu) ///
+        local clb_sd = "r(p5) r(p10) r(p25) r(p50) r(p75) r(p90) r(p99)"*/
+        // min p10 p25 p50 p75 p90 max
+        if "`n'" == "rn" local clb_wage "18 28 31 34 38 41 63"
+        if "`n'" == "rn" local clb_sd "0 1 2.1 3.5 4.7 6.1 19"
+        if "`n'" == "lpn" local clb_wage "16 21 23 25 28 32 50"
+        if "`n'" == "lpn" local clb_sd "0 .7 1.4 2.3 3.2 4.2 10.5"
+        if "`n'" == "cna" local clb_wage "8 11 13 15 17 19 30"
+        if "`n'" == "cna" local clb_sd "0 .5 .9 2.1 2.9 7.7"
+        spmap `n'_wage using usa_county_shp_clean,  id(_ID) clm(custom) clb(`clb_wage') fcolor(BuPu) ///
           ocolor(white ..) osize(0.02 ..) ndfcolor(gs4) ndocolor(gs6 ..) ndsize(0.03 ..) ndlabel("No data") /// 
           polygon(data("usa_state_shp_clean") ocolor(gs5) osize(0.15)) ///
           legend(pos(5) size(2.5))  legstyle(2) 
         graph export ../output/figures/`n'_map.pdf, replace
-        spmap `n'_sd using usa_county_shp_clean,  id(_ID) clm(quantile)  fcolor(BuPu) ///
+        spmap `n'_sd using usa_county_shp_clean,  id(_ID) clm(custom) clb(`clb_sd')  fcolor(BuPu) ///
           ocolor(white ..) osize(0.02 ..) ndfcolor(gs4) ndocolor(gs6 ..) ndsize(0.03 ..) ndlabel("No data") /// 
           polygon(data("usa_state_shp_clean") ocolor(gs5) osize(0.15)) ///
           legend(pos(5) size(2.5))  legstyle(2) 
         graph export ../output/figures/`n'_sd_map.pdf, replace
-    }*/
+    }
     foreach n in rn lpn {
         local name = strupper("`n'")
         gsort xtile_`n'_wage xtile_cna_wage
