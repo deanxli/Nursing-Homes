@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
-Makelog started: 2023-04-22 17:01:27
+Makelog started: 2023-04-24 23:43:43
 Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/hcris_sum_stats/code
 --------------------------------------------------------------------------------
 External links successfully created!
@@ -184,9 +184,28 @@ not available in non-GUI version
 >                                         label(2 "LPN:" "mean = `lpn_mean'" "           (`lpn_sd')") ///
 >                                         label(3 "CNA:" "mean = `cna_mean'" "           (`cna_sd')") pos(1) ring(0) region(lwidth(none))) 
  12.     graph export ../output/figures/within_county_diff.pdf, replace
- 13. end 
+ 13.     foreach n in lpn rn {
+ 14.         corr within_mkt_diff_cna within_mkt_diff_`n'
+ 15.         local corr = r(rho)
+ 16.         binscatter within_mkt_diff_cna within_mkt_diff_`n', legend(on order(- "Corr = `corr'") ring(0) pos(1))
+ 17.         graph export ../output/figures/within_corr_cna_`n'.pdf, replace
+ 18.     }
+ 19. 
+.     gcollapse (sd) *wage, by(county yr)
+ 20.     foreach n in rn lpn cna {
+ 21.         qui sum `n'_wage, d
+ 22.         local `n'_mean: di %4.3f r(mean)
+ 23.         local `n'_sd: di %4.3f r(sd)
+ 24.     }
+ 25.     tw hist rn_wage, frac color(lavender%60) xline(`rn_mean', lcolor(black) lpattern(dash)) || ///
+>        hist lpn_wage, frac color(emerald%60) xline(`lpn_mean', lcolor(black) lpattern(dash)) || ///
+>        hist cna_wage, frac color(navy%60)  xline(`cna_mean', lcolor(black) lpattern(dash)) ///
+>        ytitle("Proportion of Nursing Homes") xtitle("Standard Deviation Within County-Year") xlabel(0(5)30) legend(on label(1 "RN:" "mean = `rn_mean'" "           (`rn_sd')") ///
+>                                         label(2 "LPN:" "mean = `lpn_mean'" "           (`lpn_sd')") ///
+>                                         label(3 "CNA:" "mean = `cna_mean'" "           (`cna_sd')") pos(1) ring(0) region(lwidth(none))) 
+ 26.     graph export ../output/figures/within_county_sd.pdf, replace
+ 27. end 
 
-. 
 . program maps
   1. *    set scheme white_tableau
 .     spshape2dta ../external/geo/cb_2018_us_state_500k.shp, replace saving(usa_state)
@@ -222,93 +241,97 @@ not available in non-GUI version
  25.        egen cut_`n'_wage = cut(`n'_wage), at(0,10,20,30,40,50,60,70) icodes
  26.        xtile xtile_`n'_wage = `n'_wage, n(4)
  27.     }
- 28. /*    foreach n in rn lpn cna {
->         qui sum `n'_wage, d
+ 28.     foreach n in rn lpn cna {
+ 29. /*        qui sum `n'_wage, d
 >         local clb_wage = "r(p5) r(p10) r(p25) r(p50) r(p75) r(p90) r(p99)"
 >         qui sum `n'_sd, d
->         local clb_sd = "r(p5) r(p10) r(p25) r(p50) r(p75) r(p90) r(p99)"
-> /*        if "`n'" == "rn" local clb "0 15 25 35 45 63"
->         if "`n'" == "lpn" local clb "0 10 15 25 35 45 50"
->         if "`n'" == "cna" local clb "0 5 10 15 20 25 30"*/
->         spmap `n'_wage using usa_county_shp_clean,  id(_ID) clm(quantile) fcolor(BuPu) ///
+>         local clb_sd = "r(p5) r(p10) r(p25) r(p50) r(p75) r(p90) r(p99)"*/
+.         // min p10 p25 p50 p75 p90 max
+.         if "`n'" == "rn" local clb_wage "18 28 31 34 38 41 63"
+ 30.         if "`n'" == "rn" local clb_sd "0 1 2.1 3.5 4.7 6.1 19"
+ 31.         if "`n'" == "lpn" local clb_wage "16 21 23 25 28 32 50"
+ 32.         if "`n'" == "lpn" local clb_sd "0 .7 1.4 2.3 3.2 4.2 10.5"
+ 33.         if "`n'" == "cna" local clb_wage "8 11 13 15 17 19 30"
+ 34.         if "`n'" == "cna" local clb_sd "0 .5 .9 2.1 2.9 7.7"
+ 35.         spmap `n'_wage using usa_county_shp_clean,  id(_ID) clm(custom) clb(`clb_wage') fcolor(BuPu) ///
 >           ocolor(white ..) osize(0.02 ..) ndfcolor(gs4) ndocolor(gs6 ..) ndsize(0.03 ..) ndlabel("No data") /// 
 >           polygon(data("usa_state_shp_clean") ocolor(gs5) osize(0.15)) ///
 >           legend(pos(5) size(2.5))  legstyle(2) 
->         graph export ../output/figures/`n'_map.pdf, replace
->         spmap `n'_sd using usa_county_shp_clean,  id(_ID) clm(quantile)  fcolor(BuPu) ///
+ 36.         graph export ../output/figures/`n'_map.pdf, replace
+ 37.         spmap `n'_sd using usa_county_shp_clean,  id(_ID) clm(custom) clb(`clb_sd')  fcolor(BuPu) ///
 >           ocolor(white ..) osize(0.02 ..) ndfcolor(gs4) ndocolor(gs6 ..) ndsize(0.03 ..) ndlabel("No data") /// 
 >           polygon(data("usa_state_shp_clean") ocolor(gs5) osize(0.15)) ///
 >           legend(pos(5) size(2.5))  legstyle(2) 
->         graph export ../output/figures/`n'_sd_map.pdf, replace
->     }*/
-.     foreach n in rn lpn {
- 29.         local name = strupper("`n'")
- 30.         gsort xtile_`n'_wage xtile_cna_wage
- 31.         egen grp_`n'_cna_xtile = group(xtile_`n'_wage xtile_cna_wage)
- 32.         spmap grp_`n'_cna_xtile using usa_county_shp_clean,  id(_ID) clm(unique)  fcolor("`colors'") ///
+ 38.         graph export ../output/figures/`n'_sd_map.pdf, replace
+ 39.     }
+ 40.     foreach n in rn lpn {
+ 41.         local name = strupper("`n'")
+ 42.         gsort xtile_`n'_wage xtile_cna_wage
+ 43.         egen grp_`n'_cna_xtile = group(xtile_`n'_wage xtile_cna_wage)
+ 44.         spmap grp_`n'_cna_xtile using usa_county_shp_clean,  id(_ID) clm(unique)  fcolor("`colors'") ///
 >           ocolor(white ..) osize(0.02 ..) ndfcolor(gs4) ndocolor(gs6 ..) ndsize(0.03 ..) ndlabel("No data") /// 
 >           polygon(data("usa_state_shp_clean") ocolor(gs5) osize(0.15)) ///
 >           legend(off) name(bivar_xtile_`n'_cna, replace)
- 33.     }
- 34. 
+ 45.     }
+ 46. 
 .     clear 
- 35.     set obs 16 
- 36.     egen y = seq(), b(4)  
- 37.     egen x = seq(), t(4)
- 38.     twoway (scatter y x, msymbol(square) msize(18)), xlabel(0 5) ylabel(0 5) aspect(1) xsize(1) ysize(1)
- 39.     colorpalette ///
+ 47.     set obs 16 
+ 48.     egen y = seq(), b(4)  
+ 49.     egen x = seq(), t(4)
+ 50.     twoway (scatter y x, msymbol(square) msize(18)), xlabel(0 5) ylabel(0 5) aspect(1) xsize(1) ysize(1)
+ 51.     colorpalette ///
 >      #e8e8e8 #bddede #8ed4d4 #5ac8c8 ///
 >      #dabdd4 #bdbdd4 #8ebdd4 #5abdc8 ///
 >      #cc92c1 #bd92c1 #8e92c1 #5a92c1 ///
 >      #be64ac #bd64ac #8e64ac #5a64ac , nograph 
- 40.     return list
- 41.     local color11 `r(p1)'
- 42.     local color12 `r(p2)'
- 43.     local color13 `r(p3)'
- 44.     local color14 `r(p4)'
- 45.     local color21 `r(p5)'
- 46.     local color22 `r(p6)'
- 47.     local color23 `r(p7)'
- 48.     local color24 `r(p8)'
- 49.     local color31 `r(p9)'
- 50.     local color32 `r(p10)'
- 51.     local color33 `r(p11)'
- 52.     local color34 `r(p12)'
- 53.     local color41 `r(p13)'
- 54.     local color42 `r(p14)'
- 55.     local color43 `r(p15)'
- 56.     local color44 `r(p16)'
- 57.     levelsof x, local(xlvl) 
- 58.     levelsof y, local(ylvl)
- 59.     local boxes
- 60.     foreach x of local xlvl {
- 61.         foreach y of local ylvl {
- 62.             local boxes `boxes' (scatter y x if x==`x' & y==`y', msymbol(square) msize(5) mc("`color`x'`y''")) 
- 63.         }
- 64.    }
- 65. 
+ 52.     return list
+ 53.     local color11 `r(p1)'
+ 54.     local color12 `r(p2)'
+ 55.     local color13 `r(p3)'
+ 56.     local color14 `r(p4)'
+ 57.     local color21 `r(p5)'
+ 58.     local color22 `r(p6)'
+ 59.     local color23 `r(p7)'
+ 60.     local color24 `r(p8)'
+ 61.     local color31 `r(p9)'
+ 62.     local color32 `r(p10)'
+ 63.     local color33 `r(p11)'
+ 64.     local color34 `r(p12)'
+ 65.     local color41 `r(p13)'
+ 66.     local color42 `r(p14)'
+ 67.     local color43 `r(p15)'
+ 68.     local color44 `r(p16)'
+ 69.     levelsof x, local(xlvl) 
+ 70.     levelsof y, local(ylvl)
+ 71.     local boxes
+ 72.     foreach x of local xlvl {
+ 73.         foreach y of local ylvl {
+ 74.             local boxes `boxes' (scatter y x if x==`x' & y==`y', msymbol(square) msize(5) mc("`color`x'`y''")) 
+ 75.         }
+ 76.    }
+ 77. 
 .     foreach n in rn lpn {
- 66.         local upper = strupper("`n'")
- 67.         cap drop spike*
- 68.         gen spike1_x1  = 0.2 in 1
- 69.         gen spike1_x2  = 4.1 in 1 
- 70.         gen spike1_y1  = 0.2 in 1 
- 71.         gen spike1_y2  = 0.2 in 1 
- 72.         gen spike1_m   = "Higher `upper' Wages"   
- 73.           
+ 78.         local upper = strupper("`n'")
+ 79.         cap drop spike*
+ 80.         gen spike1_x1  = 0.2 in 1
+ 81.         gen spike1_x2  = 4.1 in 1 
+ 82.         gen spike1_y1  = 0.2 in 1 
+ 83.         gen spike1_y2  = 0.2 in 1 
+ 84.         gen spike1_m   = "Higher `upper' Wages"   
+ 85.           
 .         gen spike2_y1  = 0.2 in 1
- 74.         gen spike2_y2  = 4.1 in 1 
- 75.         gen spike2_x1  = 0.2 in 1  
- 76.         gen spike2_x2  = 0.2 in 1  
- 77.         gen spike2_m   = "Higher CNA wages"
- 78.         twoway `boxes' (pcarrow spike1_y1 spike1_x1 spike1_y2 spike1_x2, lw(thin) lcolor(gs12) mcolor(gs12) mlabel(spike1_m) mlabcolor(black) mlabpos(7 ) msize(0.5) headlabel mlabsize(2)) (pcarrow spike2_y1 spike2_x1 spike2_y2 spike2_x2, lw(thin) lco
+ 86.         gen spike2_y2  = 4.1 in 1 
+ 87.         gen spike2_x1  = 0.2 in 1  
+ 88.         gen spike2_x2  = 0.2 in 1  
+ 89.         gen spike2_m   = "Higher CNA wages"
+ 90.         twoway `boxes' (pcarrow spike1_y1 spike1_x1 spike1_y2 spike1_x2, lw(thin) lcolor(gs12) mcolor(gs12) mlabel(spike1_m) mlabcolor(black) mlabpos(7 ) msize(0.5) headlabel mlabsize(2)) (pcarrow spike2_y1 spike2_x1 spike2_y2 spike2_x2, lw(thin) lco
 > lor(gs12) mcolor(gs12) mlabel(spike2_m) mlabcolor(black) mlabpos(10) msize(0.5) headlabel mlabangle(90) mlabgap(1.8) mlabsize(2)), xlabel(0 4, nogrid) ylabel(0 4, nogrid) aspectratio(1) xsize(1) ysize(1) fxsize(19) fysize(19) legend(off) ytitle("")  xti
 > tle("") xscale(off) yscale(off) name(bivar_legend, replace)
- 79. 
+ 91. 
 .         graph combine bivar_xtile_`n'_cna bivar_legend, imargin(zero)
- 80.         graph export ../output/figures/bivar_xtile_`n'_cna.pdf, replace
- 81.    }
- 82. end
+ 92.         graph export ../output/figures/bivar_xtile_`n'_cna.pdf, replace
+ 93.    }
+ 94. end
 
 . main
 
@@ -350,6 +373,24 @@ file ../temp/prvdr_num_wages.dta saved
 (file ../temp/collapsed_geo_wages.dta not found)
 file ../temp/collapsed_geo_wages.dta saved
 file ../output/figures/within_county_diff.pdf saved as PDF format
+(obs=137,260)
+
+             | within~a withi~pn
+-------------+------------------
+within_mkt~a |   1.0000
+within_mk~pn |   0.6876   1.0000
+
+file ../output/figures/within_corr_cna_lpn.pdf saved as PDF format
+(obs=137,260)
+
+             | within~a withi~rn
+-------------+------------------
+within_mkt~a |   1.0000
+within_mk~rn |   0.5482   1.0000
+
+warning: nquantiles(20) was specified, but only 19 were generated. see help file under nquantiles() for explanation.
+file ../output/figures/within_corr_cna_rn.pdf saved as PDF format
+file ../output/figures/within_county_sd.pdf saved as PDF format
   (importing .shp file)
   (importing .dbf file)
   (creating _ID spatial-unit id)
@@ -402,6 +443,12 @@ AWATER already numeric; no replace
     Not matched                             0
     Matched                             2,741  
     -----------------------------------------
+file ../output/figures/rn_map.pdf saved as PDF format
+file ../output/figures/rn_sd_map.pdf saved as PDF format
+file ../output/figures/lpn_map.pdf saved as PDF format
+file ../output/figures/lpn_sd_map.pdf saved as PDF format
+file ../output/figures/cna_map.pdf saved as PDF format
+file ../output/figures/cna_sd_map.pdf saved as PDF format
 Number of observations (_N) was 0, now 16.
 
 scalars:
@@ -468,6 +515,6 @@ file ../output/figures/bivar_xtile_lpn_cna.pdf saved as PDF format
 end of do-file
 
 --------------------------------------------------------------------------------
-Makelog ended: 2023-04-22 17:01:47
+Makelog ended: 2023-04-24 23:44:29
 Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/hcris_sum_stats/code
 --------------------------------------------------------------------------------
