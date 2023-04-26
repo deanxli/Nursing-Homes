@@ -139,6 +139,13 @@ program within_mkt_stats
                                         label(2 "LPN:" "mean = `lpn_mean'" "           (`lpn_sd')") ///
                                         label(3 "CNA:" "mean = `cna_mean'" "           (`cna_sd')") pos(1) ring(0) region(lwidth(none))) 
     graph export ../output/figures/within_county_diff.pdf, replace
+    foreach n in lpn rn {
+        corr within_mkt_diff_cna within_mkt_diff_`n'
+        local corr = r(rho)
+        binscatter within_mkt_diff_cna within_mkt_diff_`n', legend(on order(- "Corr = `corr'") ring(0) pos(1))
+        graph export ../output/figures/within_corr_cna_`n'.pdf, replace
+    }
+
     gcollapse (sd) *wage, by(county yr)
     foreach n in rn lpn cna {
         qui sum `n'_wage, d
