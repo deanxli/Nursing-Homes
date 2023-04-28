@@ -1,0 +1,1848 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\begin_preamble
+\usepackage{xr}
+\usepackage{float}
+\usepackage{hyperref}
+\externaldocument{mortality_online_appx_refs}
+\externaldocument[A-]{mortality_online_appx_refs}
+
+\usepackage{setspace}
+\usepackage[bottom]{footmisc}
+\usepackage{amsfonts}
+\usepackage{pdflscape}
+\usepackage{amsmath}
+\usepackage{datetime}
+\usepackage[authoryear]{natbib}
+
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\StDev}{StDev}
+\DeclareMathOperator{\Corr}{Corr}
+\DeclareMathOperator{\Cov}{Cov}
+\DeclareMathOperator{\E}{E}
+\DeclareMathOperator{\logit}{logit}
+\DeclareMathOperator{\I}{I}
+\DeclareMathOperator{\plim}{plim}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\end_preamble
+\options round
+\use_default_options true
+\begin_modules
+hanging
+theorems-ams-bytype
+theorems-ams-extended-bytype
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "times" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family rmdefault
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures false
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\float_placement H
+\paperfontsize 11
+\spacing single
+\use_hyperref true
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen false
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks false
+\pdf_pdfborder false
+\pdf_colorlinks true
+\pdf_backref false
+\pdf_pdfusetitle false
+\pdf_quoted_options "linkcolor=blue"
+\papersize default
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 0
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 0
+\use_package mhchem 1
+\use_package stackrel 0
+\use_package stmaryrd 0
+\use_package undertilde 0
+\cite_engine natbib
+\cite_engine_type authoryear
+\biblio_style chicago
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date true
+\justification true
+\use_refstyle 1
+\use_minted 0
+\boxbgcolor #ffff00
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 1in
+\topmargin 1in
+\rightmargin 1in
+\bottommargin 1in
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+newgeometry{a4paper, left=1.0in, right=1.0in, top=1.0in, bottom=1.0in, nohead}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Title
+Nursing Home Data Pipeline
+\end_layout
+
+\begin_layout Author
+Dean Li
+\end_layout
+
+\begin_layout Section
+\paragraph_spacing onehalf
+\begin_inset Quotes eld
+\end_inset
+
+Enrollment
+\begin_inset Quotes erd
+\end_inset
+
+ Data
+\end_layout
+
+\begin_layout Description
+\noindent
+Availability Monthly between September 2022 - April 2023 (
+\begin_inset CommandInset href
+LatexCommand href
+name "link"
+target "https://data.cms.gov/provider-characteristics/hospitals-and-other-facilities/skilled-nursing-facility-enrollments"
+literal "false"
+
+\end_inset
+
+)
+\end_layout
+
+\begin_layout Description
+\noindent
+Purpose This provides us with these 
+\begin_inset Quotes eld
+\end_inset
+
+affiliation entities
+\begin_inset Quotes erd
+\end_inset
+
+ which are larger corporations that seem to own multiple nursing homes.
+ In October 2022, this includes:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+\noindent
+Genesis Healthcare (237 nursing homes; 22 states) 
+\end_layout
+
+\begin_layout Itemize
+\noindent
+The Ensign Group (236 nursing homes; 14 states)
+\end_layout
+
+\begin_layout Itemize
+Life Care Centers of America (208 nursing homes; 29 states)
+\end_layout
+
+\begin_layout Standard
+And the largest ratios:
+\end_layout
+
+\begin_layout Itemize
+Creative Solutions in Healthcare (82 nursing homes; 1 state)
+\end_layout
+
+\begin_layout Itemize
+American Senior Communities (75 nursing homes; 1 state)
+\end_layout
+
+\begin_layout Itemize
+Regency Integrated Health Services (56 nursing homes; 1 state)
+\end_layout
+
+\end_deeper
+\begin_layout Description
+Merge In order to try and backfill these affiliation entities, we merge
+ at the 
+\series bold
+nursing home level 
+\series default
+with the set of owners listed for the same nursing homes in October 2022
+ (
+\series bold
+Ownership Data
+\series default
+).
+\end_layout
+
+\begin_layout Section
+\paragraph_spacing onehalf
+\begin_inset Quotes eld
+\end_inset
+
+Change of Ownership
+\begin_inset Quotes erd
+\end_inset
+
+ Data
+\end_layout
+
+\begin_layout Description
+\noindent
+Availability Contains SNF ownership changes that occurred on or after January
+ 1, 2016 (
+\begin_inset CommandInset href
+LatexCommand href
+name "link"
+target "https://data.cms.gov/provider-characteristics/hospitals-and-other-facilities/skilled-nursing-facility-change-of-ownership"
+literal "false"
+
+\end_inset
+
+)
+\end_layout
+
+\begin_layout Description
+\noindent
+Purpose As of October 2022, there were 
+\series bold
+3,491 
+\series default
+changes in ownership logged.
+
+\series bold
+ 
+\series default
+Large affiliation entities accounted for 
+\series bold
+2,841 
+\series default
+(81.4%) of these purchases.
+ The largest purchases include
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+\noindent
+The Ensign Group (78 nursing homes; 9 states)
+\end_layout
+
+\begin_layout Itemize
+\noindent
+Creative Solutions in Healthcare (55 nursing homes; 1 state)
+\end_layout
+
+\begin_layout Itemize
+North Shore Healthcare (51 nursing homes; 3 states)
+\end_layout
+
+\begin_layout Standard
+And the acquirers which acquired the most nursing homes per state include:
+\end_layout
+
+\begin_layout Itemize
+Creative Solutions in Healthcare (55 nursing homes; 1 state)
+\end_layout
+
+\begin_layout Itemize
+HMG Healthcare (30 nursing homes; 1 state)
+\end_layout
+
+\begin_layout Itemize
+Senior Living Properties (28 nursing homes; 1 state)
+\end_layout
+
+\end_deeper
+\begin_layout Section
+\paragraph_spacing onehalf
+Results by State
+\end_layout
+
+\begin_layout Subsection
+\paragraph_spacing onehalf
+Unweighted
+\end_layout
+
+\begin_layout Standard
+\noindent
+
+\series bold
+Unweighted Counts in October 2022:
+\end_layout
+
+\begin_layout Itemize
+There were 
+\series bold
+14,843
+\series default
+ nursing homes, of which 
+\series bold
+9,785 (65.9%) 
+\series default
+were owned by these large affiliations
+\end_layout
+
+\begin_layout Itemize
+Large states that are highly chain-owned include 
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Indiana (516 nursing homes; 83.1% chain-owned)
+\end_layout
+
+\begin_layout Itemize
+Texas (1,186 nursing homes; 77.1% chain-owned)
+\end_layout
+
+\begin_layout Itemize
+Tennessee (306 nursing homes; 74.2% chain-owned)
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Large states that are not highly chain-owned include:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+New York (618 nursing homes; 46.3% chain-owned)
+\end_layout
+
+\begin_layout Itemize
+Wisconsin (337 nursing homes; 51.0% chain-owned)
+\end_layout
+
+\begin_layout Itemize
+Minnesota (347 nursing homes; 51.9% chain-owned)
+\end_layout
+
+\end_deeper
+\begin_layout Description
+\noindent
+Purpose As of September 2022, there were 
+\series bold
+3,491 changes in ownership logged.
+ 
+\series default
+Large affiliation entities accounted for 
+\series bold
+2,841 
+\series default
+of these purchases (81.4%).
+ The largest purchases include
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+\noindent
+The Ensign Group (78 nursing homes; 9 states)
+\end_layout
+
+\begin_layout Itemize
+\noindent
+Creative Solutions in Healthcare (55 nursing homes; 1 state)
+\end_layout
+
+\begin_layout Itemize
+North Shore Healthcare (51 nursing homes; 3 states)
+\end_layout
+
+\begin_layout Standard
+And the acquirers which acquired the most nursing homes per state include:
+\end_layout
+
+\begin_layout Itemize
+Creative Solutions in Healthcare (55 nursing homes; 1 state)
+\end_layout
+
+\begin_layout Itemize
+HMG Healthcare (30 nursing homes; 1 state)
+\end_layout
+
+\begin_layout Itemize
+Senior Living Properties (28 nursing homes; 1 state)
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+\align center
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Changes in Concentration for the Largest Owners by State
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset VSpace defskip
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+
+\size footnotesize
+\begin_inset Tabular
+<lyxtabular version="3" rows="11" columns="5">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="top" width="0pt">
+<column alignment="center" valignment="top" width="0pt">
+<column alignment="center" valignment="top" width="0pt">
+<column alignment="center" valignment="top" width="0pt">
+<column alignment="center" valignment="top" width="0pt">
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+\size footnotesize
+Large Affiliation Entities
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+\size footnotesize
+State
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+\size footnotesize
+Share Owned in 2016
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+\size footnotesize
+Share Owned in 2022
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+\size footnotesize
+\color blue
+\begin_inset Formula $\Delta\thinspace\textbf{Share}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Genesis Healthcare
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+New Mexico
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+31.8%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+36.3%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+4.5%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Genesis Healthcare
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+New Hampshire
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+25.7%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+30.0%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+4.3%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Genesis Healthcare
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+West Virginia
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+28.1%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+28.1%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+0.0%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Cascadia Healthcare
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Idaho
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+15.2%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+27.8%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+12.6%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Genesis Healthcare
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Vermont
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+11.1%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+25.0%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+13.9%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+The Ensign Group
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Arizona
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+16.9%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+23.2%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+6.3%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+The Ensign Group
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Utah
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+5.3%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+20.2%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+14.9%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Empres Healthcare Group
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Wyoming
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+12.5%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+18.8%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+6.3%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Legacy Healthcare
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+South Dakota
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+0.0%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+17.8%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+17.8%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+American Medical Facilities Management
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+West Virginia
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+16.7%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+16.7%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+0.0%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+\paragraph_spacing onehalf
+Weighted
+\end_layout
+
+\begin_layout Standard
+\noindent
+
+\series bold
+Weighted Counts in October 2022:
+\end_layout
+
+\begin_layout Itemize
+There were 
+\series bold
+1,105,326
+\series default
+ patient days, of which 
+\series bold
+753,125 patient days (68.1%) 
+\series default
+were in facilities that were owned by these large organizations
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Changes in Weighted Concentration for the Largest Owners by State
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset VSpace defskip
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+
+\size footnotesize
+\begin_inset Tabular
+<lyxtabular version="3" rows="11" columns="5">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="top" width="0pt">
+<column alignment="center" valignment="top" width="0pt">
+<column alignment="center" valignment="top" width="0pt">
+<column alignment="center" valignment="top" width="0pt">
+<column alignment="center" valignment="top" width="0pt">
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+\size footnotesize
+Large Affiliation Entities
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+\size footnotesize
+State
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+\size footnotesize
+Share Owned in 2016
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+\size footnotesize
+Share Owned in 2022
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+\size footnotesize
+\color blue
+\begin_inset Formula $\Delta\thinspace\textbf{Weighted Share}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Genesis Healthcare
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+New Mexico
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+36.7%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+41.9%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+5.2%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+The Ensign Group
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Arizona
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+23.7%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+32.3%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+6.6%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Genesis Healthcare
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+West Virginia
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+30.9%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+30.9%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+0.0%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Cascadia Healthcare
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Idaho
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+19.1%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+30.7%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+11.6%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Genesis Healthcare
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+New Hampshire
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+23.5%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+27.9%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+4.4%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+The Ensign Group
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Utah
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+7.9%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+25.6%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+17.7%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Empres Healthcare Group
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Wyoming
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+14.0%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+22.4%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+8.4%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Avalon Healthcare
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Utah
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+7.5%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+21.3%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+13.8%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Avamere
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Oregon
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+20.2%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+20.2%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+0.0%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row topspace="0.1cm" bottomspace="0.1cm">
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+West Virginia
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+Vermont
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+18.4%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+18.4%
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\size footnotesize
+\color blue
+0.0%
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
