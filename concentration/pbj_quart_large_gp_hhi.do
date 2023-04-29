@@ -1,6 +1,14 @@
 * Goal: Generate levels of HHI over time for 1) patients 2) working hours from PBJ
 * We use large group affiliations to provider xwalk for now, 
-* and counties/CZ as the relevant market.
+* and counties/CZ as the relevant market. 
+
+* The group affiliations are a static snapshot for 2022, we can only see entry-induced HHI cahnges.
+
+* The following figures are made: 
+* - Scatter plot of avg HHI over time (pop wt and unwt)
+* - Maps of average HHI
+* - Maps of delta HHI 
+* - Histogram of delta HHI (pop wt and unwt)
 
 * ==============================================================================
 * Globals
@@ -106,7 +114,7 @@ foreach geo in county cz hsa {
 }
 
 * ==============================================================================
-* Figures
+* Plots of concentration over time
 * ============================================================================== 
 
 * Plots over time 
@@ -168,23 +176,42 @@ foreach geo in county cz hsa {
 
 }
 
-* Plot average HHI of geos (exclude HSA, hard to map)
+* ==============================================================================
+* Maps of HHI over time & Histograms of delta HHI
+* ============================================================================== 
+
+* Plot average HHI of geos across all time periods (exclude HSA, hard to map)
 foreach geo in county cz {
 
 	use ``geo'_hhi_quarter', clear 
 	
-	collapse (mean) hhi_*, by(`geo')
+	sort `geo' date
+	
+	foreach var in rn_emp lpn_emp cna_emp mds {
+		gen first_hhi_`var' = hhi_`var'
+		gen last_hhi_`var' = hhi_`var'
+	}
+	
+	collapse (mean) hhi_* `geo'_pop2000 (first) first_hhi_* (last) last_hhi_*, by(`geo')
 	
 	foreach var in rn_emp lpn_emp cna_emp mds {
 		
+		* Map of average HHI across time 
 		maptile hhi_`var', geography(`geo'1990) savegraph("$figures/map_`geo'_hhi_`var'.pdf") replace
+		
+		* Map of change in HHI
+		gen delta_hhi_`var' = last_hhi_`var' - first_hhi_`var'
+		maptile delta_hhi_`var', geography(`geo'1990) savegraph("$figures/map_`geo'_delta_hhi_`var'.pdf") replace
+		
 	}
+	
+	* Histogram of changes 
+	tw /// 
+		(histogram delta_hhi_rn_emp, color(maroon%40)) ///
+		(histogram delta_hhi_lpn_emp, color(ltbluishgray%40)) ///
+		(histogram delta_hhi_cna_emp, color(lavendar%40)) ///
+		
+	graph export "$figures/hist_delta_hhi_`geo'_unwt.pdf",replace 
+	
 		
 }
-
-
-
-
-
-
-
