@@ -1,3 +1,18 @@
+* Goal: Examine SNF exit and entry by year from PBJ data
+
+* ==============================================================================
+* Globals
+* ==============================================================================
+
+global file_path_pos "${dropbox}/Nursing Homes/Data/Staffing Data/POS Yearly"
+global file_path_pbj "${dropbox}/Nursing Homes/Data/Staffing Data/PBJ Nurse Staffing Quarterly"
+
+* ==============================================================================
+* Entry and Exit in PBJ
+* ==============================================================================
+* Load PBJ data over time and keep provnum and and month 
+use "${file_path_pbj}/monthly_agg.dta", clear 
+
 keep provnum year 
 duplicates drop 
 
