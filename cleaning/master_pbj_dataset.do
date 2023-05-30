@@ -1,7 +1,8 @@
 * Goal: Generate a master PBJ dataset overtime with geographic xwalk and linked to large group. 
 
 * Since we cannot link sellers credibly to a large group, we approximate with a lower bound on grouping. 
-* In terms of delta HHI, it will generate an upper bound. Ultimately, we want to run the affiliation algorithm as outlined in the paper.
+* In terms of delta HHI, it will generate an upper bound. 
+* Ultimately, we want to run the affiliation algorithm as outlined by CMS.
 
 * Generate monthly and quarterly level of data. 
 
@@ -33,6 +34,28 @@ tempfile cty_cz_xwalk
 save `cty_cz_xwalk'
 
 * ==============================================================================
+* Clean large group affiliation data
+* ==============================================================================
+use "${file_path_owner}/oct_enrollment.dta", clear 
+
+* Some of the CCNs have a letter or 001 at the end. Should not be the case. 
+gen ccn_org = ccn
+replace ccn = substr(ccn, 1, 6)
+sort ccn ccn_org
+by ccn: gen num_npi = _N
+tab num_npi
+
+* 6 SNFs with two enrollmentid and NPIs. Keep the first and make a note.
+by ccn: gen num = _n 
+keep if num == 1 
+drop num 
+
+isid ccn 
+
+tempfile cleaned_oct_big_group
+save `cleaned_oct_big_group'
+
+* ==============================================================================
 * Construct large group affiliation over time using CHOW data
 * ==============================================================================
 * Load CHOW data and create panel of ownership data
@@ -55,8 +78,8 @@ drop ccnbuyer ccnseller
 
 * Merge enrollmentid of buyer because we cant match the seller 
 ren enrollmentidbuyer enrollmentid
-merge 1:1 enrollmentid using "${file_path_owner}/oct_enrollment.dta", keep(master matched) ///
-		keepusing(affiliationentityid affiliationentityname)
+merge 1:1 enrollmentid using `cleaned_oct_big_group', keep(master matched) ///
+		keepusing(affiliationentityid affiliationentityname num_npi organizationname)
 
 * See for each date, how many acquisitions a large group does
 bys date affiliationentityid: gen num_acq = _N
@@ -141,17 +164,38 @@ foreach var in enrollmentid npi associateid affiliationentityid affiliationentit
 	
 }
 
-**** SOMETHING ISN'T RIGHT XX: NO MATCHES FOR SNFs w/ no CHOW! 
-* Fill in for nursing homes who didn't undergo merger activity 
-gen providertypecode = "00-18" if mi(affiliationentityid) // do not overwrite ownership data
+* Fill in for nursing homes who didn't undergo merger activity (update but do not replace)
+merge m:1 ccn using `cleaned_oct_big_group', ///
+	keepusing(affiliationentityid affiliationentityname enrollmentid npi associateid num_npi organizationname) update
+	
+drop if _merge == 2 
+gen unmatched = (_merge == 1) 
+drop _merge 
 
-merge m:1 ccn using "${file_path_owner}/oct_enrollment.dta", keep(master matched) ///
-		keepusing(affiliationentityid affiliationentityname enrollmentid npi associateid) update
+* Relabel empty affiliation entity
+replace affiliationentityname = "NaN" if mi(affiliationentityname)
+
+* Relabel empty affiliation IDs 
+egen min_affid = min(affiliationentityid)
+egen affiliationid_infer = group(ccn) if mi(affiliationentityid)
+replace affiliationentityid = -affiliationid_infer + min_affid if mi(affiliationentityid) 
+drop affiliationid_infer min_affid
 
 * Affiliation entity is the large group
 rename affiliationentityid large_group_id
 rename affiliationentityname large_group_name 
 
 * ==============================================================================
-* Crosswalk PBJ data to POS data by correct year
+* Crosswalk PBJ data to geographic data 
 * ==============================================================================
+* Merge in CZs to county_fips data with county population
+merge m:1 state county_fips using `cty_cz_xwalk', nogen keep(master matched) ///
+	keepusing(cz county county_pop2000)
+	
+* Merge in CZ population data 
+merge m:1 cz using "$crosswalk/cz_characteristics_withnames.dta", nogen keep(master matched) ///
+	keepusing(czname pop2000) 
+ren pop2000 cz_pop2000
+
+* Save master dataset with large group affiliationentity 
+save "${file_path_pbj}/master_monthly_agg.dta", replace
