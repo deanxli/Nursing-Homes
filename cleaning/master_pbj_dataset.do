@@ -4,7 +4,7 @@
 * In terms of delta HHI, it will generate an upper bound. 
 * Ultimately, we want to run the affiliation algorithm as outlined by CMS.
 
-* Generate monthly and quarterly level of data. 
+* Generate monthly and quarterly levels of data. 
 
 * ==============================================================================
 * Globals
@@ -114,9 +114,7 @@ bys associateidseller (affiliationentityidseller): gen num_gp  = _N
 sum num_gp, d
 restore 
 
-* I can do an additional step of grouping large seller groups if same PAC ID (don't for now)
-
-****** 
+****** I can do an additional step of grouping large seller groups if same PAC ID (don't for now)
 
 * Reshape data to make panel 
 drop date _merge num_acq num_pac_sell 
@@ -136,6 +134,8 @@ gen month = month(dofm(yearmonth))
 * Make sure nothing is empty (will create filling back problems)
 assert !mi(affiliationentityid)
 replace affiliationentityname = "NaN" if mi(affiliationentityname)
+
+drop yearmonth owner 
 
 * Save as temp file 
 tempfile chow_big_gp
@@ -172,7 +172,7 @@ drop if _merge == 2
 gen unmatched = (_merge == 1) 
 drop _merge 
 
-* Relabel empty affiliation entity
+* Relabel all empty affiliation entity (including unmatched SNFs)
 replace affiliationentityname = "NaN" if mi(affiliationentityname)
 
 * Relabel empty affiliation IDs 
@@ -197,5 +197,50 @@ merge m:1 cz using "$crosswalk/cz_characteristics_withnames.dta", nogen keep(mas
 	keepusing(czname pop2000) 
 ren pop2000 cz_pop2000
 
-* Save master dataset with large group affiliationentity 
+****** Note: We can get zip code and HSA from POS data but we don't for now. 
+
+* ==============================================================================
+* Create master dataset with large group affiliation as monthly and quarterly
+* ==============================================================================
+
+* Label variables 
+label var num_npi "Number of NPIs/Enrollment IDs per SNF (the earliest one is used)"
+label var unmatched "Indicator for not matched to the October 2022 enrollment data"
+label var large_group_id "Unique ID for large group affiliation (negative indicates individual SNF)"
+label var county_pop2000 "Census 2000 county population" 
+label var cz_pop2000 "Census 2000 CZ population"
+label var czname "CZ name"
+
+* Save master monthly dataset with large group affiliationentity 
+ren ccn provnum
 save "${file_path_pbj}/master_monthly_agg.dta", replace
+
+* Save variable labels 
+foreach v of var * {
+	local l`v' : variable label `v'
+		if `"`l`v''"' == "" {
+			local l`v' "`v'"
+	}
+}
+ 
+* Create master quarterly dataset 
+collapse (sum) hrs_* mdscensus (first) city state county_name county_fips ///
+		enrollmentid npi associateid organizationname num_npi large_group_id ///
+		large_group_name unmatched county cz county_pop2000 czname cz_pop2000 ///
+		, by(provnum date)
+
+* Generate shares of hours 
+foreach var in rn lpn cna {
+	gen share_`var' = hrs_`var'_ctr / hrs_`var' 
+}
+
+* Reattach saved labels
+foreach v of var * {
+	label var `v' `"`l`v''"'
+}
+
+****** Note: We checked with the quarterly data and it mostly matches up.
+* However, quarterly data goes longer by two quarters.
+
+* Save quarterly master data
+save "${file_path_pbj}/master_quarterly_agg.dta", replace

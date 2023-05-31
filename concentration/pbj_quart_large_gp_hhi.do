@@ -1,8 +1,6 @@
 * Goal: Generate levels of HHI over time for 1) patients 2) working hours from PBJ
-* We use large group affiliations to provider xwalk for now, 
-* and counties/CZ as the relevant market. 
-
-* The group affiliations are a static snapshot for 2022, we can only see entry-induced HHI cahnges.
+* We back-propagate large group affiliations using Sept 2022 CHOW and Oct 2022 Large Groups. 
+* We count counties/CZ as the relevant market. We do not use zip code/HSA (from POS) for now.
 
 * The following figures are made: 
 * - Scatter plot of avg HHI over time (pop wt and unwt)
@@ -21,54 +19,14 @@ global crosswalk "${dropbox}/Nursing Homes/Data/Crosswalks"
 global figures "${dropbox}/Nursing Homes/Derived/Concentration"
 
 * ==============================================================================
-* County to CZ Crosswalk: construct to have county and state like PBJ data
+* Load master quarterly PBJ data 
 * ==============================================================================
-* Save state fips and abbreviations
-use "$crosswalk/county_characteristics.dta", clear
-
-drop state 
-ren stateabbrv state 
-gen state_fips = floor(county / 1000)
-
-gen county_fips = county - (state_fips * 1000)
-ren cty_pop2000 county_pop2000
-
-tempfile cty_cz_xwalk
-save `cty_cz_xwalk'
-
-* ==============================================================================
-* Crosswalk PBJ data to 1) large group affiliation 2) POS data on SNF attributes
-* ==============================================================================
-use "${file_path_pbj}/quarterly_agg.dta", clear 
+use "${file_path_pbj}/master_quarterly_agg.dta", clear 
 
 * Time variables
 gen year = ceil(date / 4) + 2016
 gen quarter = mod(date, 4)
 replace quarter = 4 if quarter == 0
-
-* Merge provnum to large group affiliations ***** XXX: changed in actual analysis to owner assignment!
-merge m:1 provnum using "$crosswalk/temporary_pbj_large_group_xw.dta", nogen keep(master matched)
-
-* Generate negative "large group ids" for SNFs without one
-egen smallgpids = group(provnum) if mi(large_group_id)
-replace large_group_id = -smallgpids if mi(large_group_id)
-
-* Merge in CZs to county_fips data with county population
-merge m:1 state county_fips using `cty_cz_xwalk', nogen keep(master matched) ///
-	keepusing(cz county county_pop2000)
-	
-* Merge in CZ population data 
-merge m:1 cz using "$crosswalk/cz_characteristics_withnames.dta", nogen keep(master matched) ///
-	keepusing(czname pop2000) 
-ren pop2000 cz_pop2000
-
-* Merge in POS data (SNF x 2017) -- missing for 2.7% of providers for zip and HSA
-ren provnum prvdr_num
-gen fyear = 2017 // POS has max 2017 data 
-merge m:1 prvdr_num fyear using "$file_path_pos/pos_database_nh.dta", nogen keep(master matched) ///
-	keepusing(zip_cd hsanum) update
-	
-ren hsanum hsa 
 
 * ==============================================================================
 * Construct outcome variables and HHI to observe concentration by county, CZ, HSA
@@ -84,9 +42,7 @@ foreach var in rn lpn cna {
 gen num_mds = mdscensus / 91 
 
 * Generate HHI for each geography: county, CZ, HSA
-gen hsa_pop2000 = 1 // since we don't have this info for now 
-
-foreach geo in county cz hsa {	 
+foreach geo in county cz {	 
 	
 	preserve 
 	
@@ -118,7 +74,7 @@ foreach geo in county cz hsa {
 * ============================================================================== 
 
 * Plots over time 
-foreach geo in county cz hsa {
+foreach geo in county cz {
 	use ``geo'_hhi_quarter', clear 
 	
 	* Is most of the variation from across geos or quarters? 
@@ -180,7 +136,7 @@ foreach geo in county cz hsa {
 * Maps of HHI over time & Histograms of delta HHI
 * ============================================================================== 
 
-* Plot average HHI of geos across all time periods (exclude HSA, hard to map)
+* Plot average HHI of geos across all time periods
 foreach geo in county cz {
 
 	use ``geo'_hhi_quarter', clear 
@@ -208,8 +164,10 @@ foreach geo in county cz {
 	* Histogram of changes 
 	tw /// 
 		(histogram delta_hhi_rn_emp, color(maroon%40)) ///
-		(histogram delta_hhi_lpn_emp, color(ltbluishgray%40)) ///
-		(histogram delta_hhi_cna_emp, color(lavendar%40)) ///
+		(histogram delta_hhi_lpn_emp, color(lavender%40)) ///
+		(histogram delta_hhi_cna_emp, color(eltgreen%40)) ///
+	, ///
+	legend(order(1 "RN" 2 "LPN" 3 "CNA") rows(1))
 		
 	graph export "$figures/hist_delta_hhi_`geo'_unwt.pdf",replace 
 	
