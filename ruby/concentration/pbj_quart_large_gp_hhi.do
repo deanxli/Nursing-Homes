@@ -8,6 +8,8 @@
 * - Maps of delta HHI 
 * - Histogram of delta HHI (pop wt and unwt)
 
+* NOTE: As a data choice we do not plot HHI or Delta HHI = 10000 sinceit's meaningless
+
 * ==============================================================================
 * Globals
 * ==============================================================================
@@ -17,6 +19,8 @@ global file_path_pbj "${dropbox}/Nursing Homes/Data/Staffing Data/PBJ Nurse Staf
 global crosswalk "${dropbox}/Nursing Homes/Data/Crosswalks"
 
 global figures "${dropbox}/Nursing Homes/Derived/Concentration"
+
+global geo_list cz //county
 
 * ==============================================================================
 * Load master quarterly PBJ data 
@@ -42,7 +46,7 @@ foreach var in rn lpn cna {
 gen num_mds = mdscensus / 91 
 
 * Generate HHI for each geography: county, CZ, HSA
-foreach geo in county cz {	 
+foreach geo in $geo_list {	 
 	
 	preserve 
 	
@@ -74,7 +78,7 @@ foreach geo in county cz {
 * ============================================================================== 
 
 * Plots over time 
-foreach geo in county cz {
+foreach geo in $geo_list {
 	use ``geo'_hhi_quarter', clear 
 	
 	* Is most of the variation from across geos or quarters? 
@@ -125,7 +129,7 @@ foreach geo in county cz {
 				ytitle("Average HHI of `var' (pop wted)") ///
 				legend(off) ///
 				ylabel(0(2000)10000, nogrid)
-				
+			
 			graph export "$figures/graph_hhi_`var'_`geo'_over_time_popwt.pdf",replace 
 		}		
 	restore 	
@@ -137,7 +141,7 @@ foreach geo in county cz {
 * ============================================================================== 
 
 * Plot average HHI of geos across all time periods
-foreach geo in county cz {
+foreach geo in $geo_list {
 
 	use ``geo'_hhi_quarter', clear 
 	
@@ -152,22 +156,24 @@ foreach geo in county cz {
 	
 	foreach var in rn_emp lpn_emp cna_emp mds {
 		
-		* Map of average HHI across time 
-		maptile hhi_`var', geography(`geo'1990) savegraph("$figures/map_`geo'_hhi_`var'.pdf") replace
+		* Map of average HHI across time (do not plot if 10000) 
+		maptile hhi_`var' if abs(hhi_`var' < 10000), geography(`geo'1990) ///
+			savegraph("$figures/map_`geo'_hhi_`var'.pdf") replace
 		
-		* Map of change in HHI
+		* Map of change in HHI (do not plot if 10000) 
 		gen delta_hhi_`var' = last_hhi_`var' - first_hhi_`var'
-		maptile delta_hhi_`var', geography(`geo'1990) savegraph("$figures/map_`geo'_delta_hhi_`var'.pdf") replace
+		maptile delta_hhi_`var' if abs(delta_hhi_`var' < 10000), geography(`geo'1990) ///
+			savegraph("$figures/map_`geo'_delta_hhi_`var'.pdf") replace
 		
 	}
 	
-	* Histogram of changes 
+	* Histogram of changes (do not plot if 10000)
 	tw /// 
-		(histogram delta_hhi_rn_emp, color(maroon%40)) ///
-		(histogram delta_hhi_lpn_emp, color(lavender%40)) ///
-		(histogram delta_hhi_cna_emp, color(eltgreen%40)) ///
+		(histogram delta_hhi_rn_emp if abs(delta_hhi_rn_emp < 10000), color(maroon%40)) ///
+		(histogram delta_hhi_lpn_emp if abs(delta_hhi_lpn_emp < 10000), color(lavender%40)) ///
+		(histogram delta_hhi_cna_emp if abs(delta_hhi_cna_emp < 10000), color(eltgreen%40)) ///
 	, ///
-	legend(order(1 "RN" 2 "LPN" 3 "CNA") rows(1))
+	legend(order(1 "RN" 2 "LPN" 3 "CNA") col(1))
 		
 	graph export "$figures/hist_delta_hhi_`geo'_unwt.pdf",replace 
 	
