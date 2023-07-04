@@ -95,10 +95,6 @@ preserve
 	* Merge and try out spmap
 	merge 1:m cz using "$map/cz", nogen
 	
-	* Replace missing values with zero or else it looks bad
-	*replace chow0 = 0 if mi(chow0)
-	*replace chow1 = 0 if mi(chow1)
-	
 	cd "$map"
 	bimap chow0 chow1 using cz_shp , cut(pctile) palette(pinkgreen) ///
 		 texty("Out of Market") textx("In Market") texts(3.5) textlabs(3) values count ///
@@ -109,8 +105,8 @@ preserve
 	graph export "$figures/bimap_chow_in_vs_out_cz.pdf",replace 	
 	
 	* Save to merge later 
-	ren chow0 chowcz0 
-	ren chow1 chowcz1 
+	ren chow0 chow_cz_out
+	ren chow1 chow_cz_in
 	
 	tempfile cz_mkt_numbers
 	save `cz_mkt_numbers'
@@ -144,8 +140,8 @@ preserve
 	graph export "$figures/bimap_chow_in_vs_out_state.pdf",replace 	
 
 	* Save to merge later 
-	ren chow0 chowst0 
-	ren chow1 chowst1 
+	ren chow0 chow_st_out 
+	ren chow1 chow_st_in
 	
 	tempfile st_mkt_numbers
 	save `st_mkt_numbers'
@@ -181,3 +177,7 @@ merge 1:1 cz using `cz_mkt_numbers', nogen
 merge 1:1 cz using `st_mkt_numbers', nogen 
 
 gsort -chow
+
+* Save excel table of the largest 20 CZs in number of CHOWs
+drop _ID-_CY
+export excel "$figures/top_20_cz_by_chow.xlsx", firstrow(variables) replace
