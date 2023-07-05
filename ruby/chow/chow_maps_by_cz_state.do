@@ -92,7 +92,7 @@ preserve
 	*maptile chow0, geography(cz1990) fcolor("BuPu") n(8) savegraph("$figures/chow_diff_state_by_cz.pdf") replace
 	*maptile chow1, geography(cz1990) fcolor("BuPu") n(8) savegraph("$figures/chow_same_state_by_cz.pdf") replace
 	
-	* Merge and try out spmap
+	/* Merge and try out spmap
 	merge 1:m cz using "$map/cz", nogen
 	
 	cd "$map"
@@ -103,7 +103,7 @@ preserve
 		 polygon(data(state_shp) ocolor(gs8) osize(0.15))
 
 	graph export "$figures/bimap_chow_in_vs_out_cz.pdf",replace 	
-	
+	*/
 	* Save to merge later 
 	ren chow0 chow_cz_out
 	ren chow1 chow_cz_in
@@ -127,7 +127,7 @@ preserve
 	*maptile chow0, geography(cz1990) fcolor("BuPu") n(8) savegraph("$figures/chow_diff_cz_by_cz.pdf") replace
 	*maptile chow1, geography(cz1990) fcolor("BuPu") n(8) savegraph("$figures/chow_same_cz_by_cz.pdf") replace
 	
-	* Merge and try out spmap
+	/* Merge and try out spmap
 	merge 1:m cz using "$map/cz", nogen
 	
 	cd "$map"
@@ -138,7 +138,7 @@ preserve
 		 polygon(data(state_shp) ocolor(gs8) osize(0.15))
 
 	graph export "$figures/bimap_chow_in_vs_out_state.pdf",replace 	
-
+	*/
 	* Save to merge later 
 	ren chow0 chow_st_out 
 	ren chow1 chow_st_in
@@ -152,7 +152,7 @@ collapse (count) chow (mean) cz_pop2000, by(czname cz)
 drop if mi(cz)
 isid cz
 
-* Get breakpoints from maptile
+/* Get breakpoints from maptile
 qui maptile chow, geography(cz1990)
 local n_col = rowsof(r(breaks))
 forvalues i = 1/`n_col'{
@@ -171,7 +171,7 @@ spmap chow using cz_shp, id(_ID) clm(custom) clb(`cuts') fcolor(BuPu) ///
 	  polygon(data(state_shp) ocolor(gs5) osize(0.15)) ///
 	  legend(pos(5) size(2.5)) legstyle(2)
 graph export "$figures/chow_total_by_cz.pdf",replace 	
-		  
+*/  
 * Merge and see what the top CZs in CHOWs are 
 merge 1:1 cz using `cz_mkt_numbers', nogen 
 merge 1:1 cz using `st_mkt_numbers', nogen 
