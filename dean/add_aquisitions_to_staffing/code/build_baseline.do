@@ -8,7 +8,6 @@ program main
     merge_in_acquisitions
 end
     
-    
     program construct_baseline
         use "../external/master_quarterly_agg_dean.dta", clear
         
@@ -20,11 +19,11 @@ end
         gen ratio_staff_mds = total_staff / (mdscensus * 8)
         replace total_staff = total_staff / 8
 
-        keep provnum date state cz large_group_id ${outcomes}
+        keep provnum date state cz county large_group_id ${outcomes}
         egen state_grp = group(state)
         egen large_group_set = group(large_group_id)
 
-        save "../temp/baseline_file", replace
+        save "../temp/short_outcomes", replace
     end
 
     program merge_in_acquisitions
@@ -32,16 +31,33 @@ end
         ever_acquirer 
         non_acquired_provnum
 
-        use "../temp/baseline_file", clear
-        merge m:1 provnum using ../temp/acquisition_date_marker, keep(1 3) keepusing(acquirer_set prev_owner_set acquisition_date) nogen
+        use "../temp/short_outcomes", clear
+        merge m:1 provnum using ../temp/acquisition_date_marker, keep(1 3) keepusing(acquirer_* prev_owner_* acquisition_date) nogen
         merge m:1 provnum using ../temp/alt_acquisition_date_marker, keep(1 3) keepusing(alt_acq_date) nogen
         merge m:1 large_group_set using ../temp/ever_acquirer, keep(1 3) keepusing(ever_acquirer) nogen
+        
+        label var ratio_rn_staff "Ratio of RNs to Total Staff"
+        label var ratio_rn_mds "Ratio of RNs to Patients"
+        label var ratio_cna_staff "Ratio of CNAs to Total Staff"
+        label var ratio_cna_mds "Ratio of CNAs to Patients"
+        label var ratio_staff_mds "Ratio of Staff to Patients"
+
+
+        label var state_grp "Numeric label for State"
+        label var large_group_set "Positive identifier for Large Group ID"
+        label var acquirer_id "Large Group ID of eventual acquirer"
+        label var acquirer_set "Large Group Set of eventual acquirer"
+        label var prev_owner_id "Large Group ID of first owner" 
+        label var prev_owner_set "Large Group Set of first owner"
+        label var acquisition_date "Quarter of Acquisition"
+        label var alt_acq_date "Alternative quarter of acquisition date from CHOW"
+        label var ever_acquirer "Owner(s) of the nursing home part of set of acquirers"
         save "../temp/baseline_data", replace
     end
 
             ** Save the acquirer, the date, and the previous owner
             program acquirer_and_date
-                use "../temp/baseline_file", clear 
+                use "../temp/short_outcomes", clear 
                 keep provnum large_group_set large_group_id date
             
                     preserve
