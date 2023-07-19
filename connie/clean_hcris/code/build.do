@@ -46,6 +46,7 @@ program import_append
         rename (valwage100 valwage200 valwage300 valwage1400 valwage1500 valwage1600) (rn_wage lpn_wage cna_wage c_rn_wage c_lpn_wage c_cna_wage)
         rename (valfringe100 valfringe200 valfringe300 valfringe1400 valfringe1500 valfringe1600) (rn_fringe lpn_fringe cna_fringe c_rn_fringe c_lpn_fringe c_cna_fringe)
         gen yr = `yr'
+        drop if mi(rn_wage) & mi(lpn_wage) & mi(cna_wage) & mi(c_rn_wage) & mi(c_lpn_wage) & mi(c_cna_wage) & mi(rn_fringe) & mi(lpn_fringe) & mi(cna_fringe) & mi(c_rn_fringe) & mi(c_lpn_fringe) & mi(c_cna_fringe)
         save ../temp/wage`yr', replace
     }
     clear
@@ -54,10 +55,12 @@ program import_append
     }
     gduplicates drop
     save ../output/hcris_ccn_xwalk, replace
+    clear
     forval yr = 2011/2022 { 
         append using ../temp/wage`yr'
     }
     merge m:1 id yr using ../output/hcris_ccn_xwalk, assert(1 2 3) keep(3) nogen
+    bys  id: kj
     save ../output/nh_hcris_wages, replace
 
     clear
