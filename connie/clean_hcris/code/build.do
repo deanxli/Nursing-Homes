@@ -35,11 +35,16 @@ program import_append
         
         //clean s3 part 2
         import delimited using "../external/samp/SNF10FY`yr'/SNF10_`yr'_NMRC.CSV", clear
-        keep if v2 == "S300005" & v4 == "00500" & inlist(v3, 100, 200, 300, 1400, 1500, 1600)
-        keep v1 v3 v5
-        rename (v1 v3 v5) (id var val)
-        reshape wide val, i(id) j(var) 
-        rename (val100 val200 val300 val1400 val1500 val1600) (rn_wage lpn_wage cna_wage c_rn_wage c_lpn_wage c_cna_wage)
+        keep if v2 == "S300005" & inlist(v4, "00500", "00200") & inlist(v3, 100, 200, 300, 1400, 1500, 1600)
+        replace v4 = "fringe" if v4 == "00200"
+        replace v4 = "wage" if v4 == "00500"
+
+        keep v1 v3 v5 v4
+        rename (v1 v3 v4 v5) (id var type val)
+        reshape wide val , i(id var) j(type) string
+        reshape wide valfringe valwage, i(id) j(var) 
+        rename (valwage100 valwage200 valwage300 valwage1400 valwage1500 valwage1600) (rn_wage lpn_wage cna_wage c_rn_wage c_lpn_wage c_cna_wage)
+        rename (valfringe100 valfringe200 valfringe300 valfringe1400 valfringe1500 valfringe1600) (rn_fringe lpn_fringe cna_fringe c_rn_fringe c_lpn_fringe c_cna_fringe)
         gen yr = `yr'
         save ../temp/wage`yr', replace
     }
