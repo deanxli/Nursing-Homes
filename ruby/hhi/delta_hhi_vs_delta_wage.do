@@ -30,7 +30,8 @@ sort provnum year id
 drop c_* 
 drop if mi(rn_wage) & mi(lpn_wage) & mi(cna_wage) 
 
-collapse (last) *_wage, by(provnum year)
+* Collapse and ignore observations with missing values
+collapse (mean) *_wage, by(provnum year) cw
 
 keep if year >= 2017 & year <= 2021
 
