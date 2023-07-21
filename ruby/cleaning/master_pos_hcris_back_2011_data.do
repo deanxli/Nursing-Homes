@@ -56,15 +56,15 @@ gen year = ceil(date / 4) + 2016
 gen quarter = mod(date, 4)
 replace quarter = 4 if quarter == 0
 
-* Relabel large group ID to -1 if group name is "NaN" 
-replace large_group_id = -1 if large_group_name == "NaN"
-
 * Look at CHOW events (see if large group ID changes compared to the previous date)
 sort provnum date
 by provnum: gen large_group_prev = large_group_id[_n-1]
 
 gen chow = (large_group_prev != large_group_id) ///
 		& !mi(large_group_prev) & !mi(large_group_id)
+
+* Relabel large group ID to -1 if group name is "NaN" (note in PBJ some CHOWs are no large gp to no large gp)
+replace large_group_id = -1 if large_group_name == "NaN"
 
 * Collapse to annual data 
 collapse (sum) hrs_* mdscensus chow (lastnm) city state county cz county_pop2000 cz_pop2000 czname ///
