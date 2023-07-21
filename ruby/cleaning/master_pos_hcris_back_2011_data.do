@@ -114,11 +114,11 @@ merge m:1 cz using "$crosswalk/cz_characteristics_withnames.dta", nogen keep(mas
 	keepusing(czname pop2000) 
 ren pop2000 cz_pop2000
 
-* Rename the previous 
+* Rename previous large group for POS to compare 
 ren large_group_prev large_group_prev_pos
 
-* Merge PBJ annual data (all the updates are because of organization name)
-merge 1:1 provnum year using `pbj_annual', update replace 
+* Merge PBJ annual data (most updates are because of organization name, use PBJ for 2017)
+merge 1:1 provnum year using `pbj_annual', update replace
 ren _merge pos_pbj_merge
 
 * Merge wage data
@@ -131,11 +131,13 @@ merge 1:1 provnum year using `yearly_wage', nogen keep(master matched)
 bys large_group_id year: egen large_group_snfs = count(provnum)
 bys large_group_prev year: egen large_group_prev_snfs = count(provnum)
 
-* Label -1 as only one SNF 
-replace large_group_snfs = 1 if large_group_id == -1 
-replace large_group_prev_snfs = 1 if large_group_prev == -1
+* Label -1 as one SNF 
+replace large_group_snfs = 1 if large_group_id == -1 | mi(large_group_id)
+replace large_group_prev_snfs = 1 if large_group_prev == -1 | mi(large_group_prev)
 
-* Label a CHOW as sole proprietor to large chain 
+* Label a CHOW as sole proprietor (1 SNF) to a chain (> 1 SNF)
+gen chow_sole = (chow == 1) & (large_group_prev_snfs == 1) & (large_group_snfs > 1) 
+label variable chow_sole "Indicator for CHOW being from a sole proprietor (1 SNF) to a chain (> 1 SNF)"
 
 * Label a CHOW as suspicious (if ownership flip back and forth)
 sort provnum year
@@ -155,6 +157,12 @@ replace gp_prev_match = 0 if mi(large_group_prev_pos) & mi(large_group_prev) & (
 tab gp_prev_match
 
 label var gp_prev_match "2 = POS and PBJ match, 1 = not match, 0 = both missing, -1 = PBJ missing, -2 = POS missing"
+
+* NOTE: CHOW sole is VERY different in 2011-2016 compared to 2017-2021
+tab year if chow == 1
+tab year chow_sole if chow == 1
+
+isid year provnum 
 
 * Save master annual dataset with ownership 
 save "${file_path_pos}/master_pos_pbj_hcris_2011_2022_ownership.dta", replace
