@@ -8,12 +8,12 @@
 * Globals
 * ==============================================================================
 
-global file_path_pos "${dropbox}/Nursing Homes/Data/Staffing Data/POS Yearly"
-global file_path_pbj "${dropbox}/Nursing Homes/Data/Staffing Data/PBJ Nurse Staffing Quarterly"
-global dean_file "${dropbox}/Nursing Homes/Data/Dean GitHub Output/Extension Back To 2011/"
+global file_path_pos "${dropbox}/Nursing Homes/Nursing Homes Data/Staffing Data/POS Yearly"
+global file_path_pbj "${dropbox}/Nursing Homes/Nursing Homes Data/Staffing Data/PBJ Nurse Staffing Quarterly"
+global dean_file "${dropbox}/Nursing Homes/Nursing Homes Data/Dean GitHub Output/Extension Back To 2011/"
 global wage_data "${github}/Nursing-Homes/connie/clean_hcris/output/"
 
-global crosswalk "${dropbox}/Nursing Homes/Data/Crosswalks"
+global crosswalk "${dropbox}/Nursing Homes/Nursing Homes Data/Crosswalks"
 
 global derived "${dropbox}/Nursing Homes/Derived/Concentration"
 
