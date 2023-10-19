@@ -6,15 +6,19 @@ set scheme modern
 preliminaries
 version 17
 set maxvar 120000, perm
+global hcris_data "/Users/conniexu/Dropbox (Harvard University)/NH Ownership/Nursing Homes Data/Medicare Cost Reports/Data by Year/"
 
 program main   
     import_append
 end
 
 program import_append 
+    forval yr = 1995/2010 {
+        import delimited using "${hcris_data}SNFFY`yr'/SNF_`yr'_ALPHA.CSV", clear
+    }
     forval yr = 2011/2022 {
         // get ccns
-        import delimited using "../external/samp/SNF10FY`yr'/SNF10_`yr'_ALPHA.CSV", clear
+        import delimited using "${hcris_data}SNF10FY`yr'/SNF10_`yr'_ALPHA.CSV", clear
         keep if v2 == "S200001" & v3 == 400 & v4 == 200
         keep v1 v5
         rename (v1 v5) (id ccn)
@@ -23,7 +27,7 @@ program import_append
         save ../temp/hcris_ccn_`yr'_xwalk, replace
     
         //clean s3 part 1
-        import delimited using "../external/samp/SNF10FY`yr'/SNF10_`yr'_NMRC.CSV", clear
+        import delimited using "${hcris_data}SNF10FY`yr'/SNF10_`yr'_NMRC.CSV", clear
         keep if v2 == "S300001" & v3 == 100
         drop v2 v3
         rename (v1 v4 v5) (id var val)
@@ -34,7 +38,7 @@ program import_append
         save ../temp/payroll_wrkers_`yr', replace
         
         //clean s3 part 2
-        import delimited using "../external/samp/SNF10FY`yr'/SNF10_`yr'_NMRC.CSV", clear
+        import delimited using "${hcris_data}SNF10FY`yr'/SNF10_`yr'_NMRC.CSV", clear
         keep if v2 == "S300005" & inlist(v4, "00500", "00200") & inlist(v3, 100, 200, 300, 1400, 1500, 1600)
         replace v4 = "fringe" if v4 == "00200"
         replace v4 = "wage" if v4 == "00500"
