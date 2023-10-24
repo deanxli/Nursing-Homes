@@ -14,7 +14,7 @@ program main
 end
 
 program entry_exit
-    use ../external/entry_exit/comparison_of_entry_exit.dta, clear
+    use if fyear > 2007 using ../external/entry_exit/comparison_of_entry_exit.dta, clear
     grstyle init
     grstyle set color Dark2
 

@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
-Makelog started: 2023-10-24 19:51:17
+Makelog started: 2023-10-24 19:56:30
 Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/connie/presentation_exhibits/code
 --------------------------------------------------------------------------------
 External links successfully created!
@@ -57,7 +57,7 @@ Notes:
 
 . 
 . program entry_exit
-  1.     use ../external/entry_exit/comparison_of_entry_exit.dta, clear
+  1.     use if fyear > 2007 using ../external/entry_exit/comparison_of_entry_exit.dta, clear
   2.     grstyle init
   3.     grstyle set color Dark2
   4. 
@@ -251,6 +251,6 @@ file ../output/figures/cat_map.pdf saved as PDF format
 end of do-file
 
 --------------------------------------------------------------------------------
-Makelog ended: 2023-10-24 19:51:24
+Makelog ended: 2023-10-24 19:56:36
 Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/connie/presentation_exhibits/code
 --------------------------------------------------------------------------------
