@@ -1,0 +1,4 @@
+./entry_exit/ | /Users/conniexu/Dropbox (Harvard University)/NH Ownership/Nursing Homes Data/Dean Nursing Home Push/for_connie
+./hhi/ | /Users/conniexu/Dropbox (Harvard University)/NH Ownership/Nursing Homes Data/Dean GitHub Output/POS Multi-Owner + Acquisitions/1. Combine/temp
+./acqs/ | /Users/conniexu/Dropbox (Harvard University)/NH Ownership/Nursing Homes Data/Dean GitHub Output/POS Multi-Owner + Acquisitions/1. Combine/output
+./geo/ | /Users/conniexu/Dropbox (Harvard University)/NH Ownership/Nursing Homes Data/Geography

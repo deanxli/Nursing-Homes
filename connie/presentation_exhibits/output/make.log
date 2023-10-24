@@ -1,0 +1,256 @@
+--------------------------------------------------------------------------------
+Makelog started: 2023-10-24 19:51:17
+Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/connie/presentation_exhibits/code
+--------------------------------------------------------------------------------
+External links successfully created!
+
+  ___  ____  ____  ____  ____ ®
+ /__    /   ____/   /   ____/      17.0
+___/   /   /___/   /   /___/       MP—Parallel Edition
+
+ Statistics and Data Science       Copyright 1985-2021 StataCorp LLC
+                                   StataCorp
+                                   4905 Lakeway Drive
+                                   College Station, Texas 77845 USA
+                                   800-STATA-PC        https://www.stata.com
+                                   979-696-4600        stata@stata.com
+
+Stata license: 999-user 4-core network, expiring 30 Jun 2024
+Serial number: 501809306455
+  Licensed to: Harvard University
+               Harvard University
+
+Notes:
+      1. Stata is running in batch mode.
+      2. Unicode is supported; see help unicode_advice.
+      3. More than 2 billion observations are allowed; see help obs_advice.
+      4. Maximum number of variables is set to 120,000; see help set_maxvar.
+
+. do "/Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/connie/
+> presentation_exhibits/code/build.do" 
+
+. set more off
+
+. clear all
+
+. capture log close
+
+. program drop _all
+
+. set scheme modern
+
+. preliminaries
+
+. version 17
+
+. set maxvar 120000, perm
+(set maxvar preference recorded)
+
+
+. global hcris_data "/Users/conniexu/Dropbox (Harvard University)/NH Ownership/Nursing Homes Data/Medicare Cost Reports/Data by Year/"
+
+. 
+. program main   
+  1.     entry_exit
+  2.     maps
+  3. end
+
+. 
+. program entry_exit
+  1.     use ../external/entry_exit/comparison_of_entry_exit.dta, clear
+  2.     grstyle init
+  3.     grstyle set color Dark2
+  4. 
+.     graph bar entry exit total_acq, over(fyear, label(angle(45))) ytitle("Number of Events Per Year") legend(label(1 "Entries") label(2 "Exits") label(3 "Ownership Changes") rowgap(0) pos(11) ring(0) size(small)) 
+  5.     graph export ../output/figures/entry_exit_comp.pdf, replace
+  6. end
+
+. 
+. program maps
+  1.     * Maps with the # of Acquisitions File (break into ones exposed to “multiple in-market acquisitions”, “one in-market acquisition”, “out of market acquisitions”, “no acquisitions”
+.     spshape2dta ../external/geo/cb_2018_us_state_500k.shp, replace saving(usa_state)
+  2.     use usa_state_shp, clear
+  3.     merge m:1 _ID using usa_state
+  4.     destring STATEFP, replace
+  5.     drop if inlist(STATEFP,2,15,60,66,69,72,78)
+  6.     geo2xy _Y _X, proj(albers) replace
+  7.     drop _CX- _merge
+  8.     sort _ID shape_order
+  9.     save usa_state_shp_clean.dta, replace
+ 10. 
+.     spshape2dta "../external/geo/cz1990.shp", replace saving(usa_cz)
+ 11.     use usa_cz_shp, clear
+ 12.     merge m:1 _ID using usa_cz, nogen
+ 13.     destring cz, replace
+ 14.     drop if inrange(cz, 34100, 34115) | inlist(cz, 35600, 34701, 34703, 34702, 34703)
+ 15.     geo2xy _Y _X, proj(albers) replace
+ 16.     sort _ID shape_order
+ 17.     save usa_cz_shp_clean.dta, replace
+ 18.    
+.     use ../external/geo/zip_cz, clear
+ 19.     gcontract cz cz_id_1990
+ 20.     drop _freq
+ 21.     rename (cz cz_id_1990) (czcurrent cz)
+ 22.     merge m:1 cz using usa_cz, keep(3) keepusing(cz) nogen
+ 23.     gduplicates drop czcurrent, force
+ 24.     rename (czcurrent cz) (cz cz_id_1990)
+ 25.     save ../temp/cz_xwalk, replace
+ 26.     
+.     use ../external/acqs/acq_count_data, clear
+ 27.     foreach var in total_in_market total_all_small total_all_large {
+ 28.         gen rel_`var' = `var'/number_of_nh
+ 29.     }
+ 30. 
+.     merge m:1 cz using ../temp/cz_xwalk , keep(3) nogen
+ 31.     drop cz
+ 32.     rename cz cz
+ 33.     gen num_acqs = total_in_market
+ 34.     gcollapse (sum) num_acqs (mean) rel*, by(cz)
+ 35.     save ../temp/acq_count_data, replace
+ 36. 
+.     use ../external/hhi/cz_rn_hhi_xw.dta
+ 37.     merge m:1 cz using ../temp/cz_xwalk , keep(3) nogen
+ 38.     drop cz
+ 39.     rename cz cz
+ 40.     keep if year == 2022
+ 41.     gduplicates drop year cz, force
+ 42.     save ../temp/hhi, replace
+ 43. 
+.     use usa_cz, clear
+ 44.     destring _all, replace
+ 45.     merge 1:1 cz using ../temp/acq_count_data, assert(1 2 3) keep(1 3) nogen
+ 46.     merge 1:1 cz using ../temp/hhi, assert(1 2 3) keep(1 3) nogen
+ 47.     gen cat = 0 if num_acqs == 0
+ 48.     replace cat = 1 if num_acqs == 1
+ 49.     replace cat = 2 if num_acqs > 1
+ 50.     replace cat = 0 if mi(cat)
+ 51.     label define cat 0 "No acquisitions" 1 "1 acquisition" 2 "More than 1 acquisition"
+ 52.     label values cat cat
+ 53.     colorpalette //j
+ 54.      #e8e8e8 #bddede #8ed4d4 #5ac8c8 ///
+>      #dabdd4 #bdbdd4 #8ebdd4 #5abdc8 ///
+>      #cc92c1 #bd92c1 #8e92c1 #5a92c1 ///
+>      #be64ac #bd64ac #8e64ac #5a64ac , nograph 
+Unknown #command
+.     local colors `r(p)'
+ 55.     qui sum hhi
+ 56.     local max = r(max)
+ 57.     spmap hhi using usa_cz_shp_clean, id(_ID) fcolor(BuPu) clmethod(custom) clbreak(0 1000 1500 2500 `max') ///
+>       ocolor(white ..) osize(0.02 ..) ndfcolor(white) ndocolor(gs6 ..) ndsize(0.03 ..) ndlabel("No data") ///
+>       polygon(data("usa_cz_shp_clean") ocolor(gs5) osize(0.15)) ///
+>       legend(pos(7) size(1.75))  legstyle(1) legorder(hilo) /// 
+>       note("CZ HHI", size(1.5))
+ 58.     graph export ../output/figures/hhi_map.pdf, replace
+ 59.     spmap cat using usa_cz_shp_clean, id(_ID) fcolor(BuPu) clmethod(unique) ///
+>       ocolor(white ..) osize(0.02 ..) ndfcolor(gs4) ndocolor(gs6 ..) ndsize(0.03 ..) ndlabel("No data") ///
+>       polygon(data("usa_cz_shp_clean") ocolor(gs5) osize(0.15)) ///
+>       legend(pos(7) size(1.75))  legstyle(1) legorder(hilo) /// 
+>       note("Number of in-market acquisitions", size(1.5))
+ 60.     graph export ../output/figures/cat_map.pdf, replace
+ 61. end
+
+. main
+file ../output/figures/entry_exit_comp.pdf saved as PDF format
+  (importing .shp file)
+  (importing .dbf file)
+  (creating _ID spatial-unit id)
+  (creating _CX coordinate)
+  (creating _CY coordinate)
+
+  file usa_state_shp.dta created
+  file usa_state.dta     created
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                           296,043  (_merge==3)
+    -----------------------------------------
+STATEFP: all characters numeric; replaced as byte
+(128,975 observations deleted)
+file usa_state_shp_clean.dta saved
+  (importing .shp file)
+  (importing .dbf file)
+  (creating _ID spatial-unit id)
+  (creating _CX coordinate)
+  (creating _CY coordinate)
+
+  file usa_cz_shp.dta created
+  file usa_cz.dta     created
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                           148,964  
+    -----------------------------------------
+cz already numeric; no replace
+(6,748 observations deleted)
+file usa_cz_shp_clean.dta saved
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             1,018  
+    -----------------------------------------
+
+Duplicates in terms of czcurrent
+
+(309 observations deleted)
+(file ../temp/cz_xwalk.dta not found)
+file ../temp/cz_xwalk.dta saved
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                            11,553  
+    -----------------------------------------
+(file ../temp/acq_count_data.dta not found)
+file ../temp/acq_count_data.dta saved
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                            11,546  
+    -----------------------------------------
+(10,870 observations deleted)
+
+Duplicates in terms of year cz
+
+(96 observations deleted)
+(file ../temp/hhi.dta not found)
+file ../temp/hhi.dta saved
+_ID already numeric; no replace
+_CX already numeric; no replace
+_CY already numeric; no replace
+cz already numeric; no replace
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                           154
+        from master                       154  
+        from using                          0  
+
+    Matched                               587  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                           161
+        from master                       161  
+        from using                          0  
+
+    Matched                               580  
+    -----------------------------------------
+(411 missing values generated)
+(52 real changes made)
+(359 real changes made)
+(0 real changes made)
+file ../output/figures/hhi_map.pdf saved as PDF format
+file ../output/figures/cat_map.pdf saved as PDF format
+
+. 
+end of do-file
+
+--------------------------------------------------------------------------------
+Makelog ended: 2023-10-24 19:51:24
+Working directory: /Users/conniexu/Documents/Harvard/research projects/Nursing-Homes/connie/presentation_exhibits/code
+--------------------------------------------------------------------------------
